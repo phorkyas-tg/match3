@@ -7,7 +7,7 @@ var config = {
     type: Phaser.AUTO,
     width: CANVAS_WIDTH,
     height: CANVAS_HEIGHT,
-    backgroundColor: "#123123",
+    backgroundColor: "#FFFFFF",
     physics: {
         default: 'arcade',
         arcade: {
