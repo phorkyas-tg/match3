@@ -11,7 +11,7 @@ class Level extends Phaser.Scene
         this.timer = null;
         this.updateTime = 120
         this.candrag = false;
-        this.numberOfBeans = 6
+        this.numberOfBeans = 3
     }
 
     init (data)
@@ -42,7 +42,7 @@ class Level extends Phaser.Scene
 
         mapLayer.forEachTile(value => {
             if (value.index != -1 && value.properties.isGameBoard) { 
-                this.gameBoard[[value.x * TILE_WIDTH, value.y * TILE_HEIGHT]] = 0;
+                this.gameBoard[[value.x * TILE_WIDTH + TILE_WIDTH / 2, value.y * TILE_HEIGHT + TILE_HEIGHT / 2]] = 0;
             }
         }, this);
 
@@ -64,7 +64,7 @@ class Level extends Phaser.Scene
     createBean(x, y, spriteIndex) {
         let bean = this.physics.add.sprite(x, y, 'match3Sprite', spriteIndex)
             .setInteractive()
-            .setOrigin(0);
+            .setOrigin(0.5);
 
 
         this.input.setDraggable(bean);
@@ -158,7 +158,7 @@ class Level extends Phaser.Scene
     generateBeans() {
         for (const [key, value] of Object.entries(this.generators)) {
             let genPos = this.getPosFromKey(key)
-            let pos = [genPos[0], genPos[1] + TILE_HEIGHT];
+            let pos = [genPos[0] + TILE_WIDTH / 2, genPos[1] + TILE_HEIGHT + TILE_HEIGHT / 2];
             if (this.dictGet(this.beans, pos, null) == null) {
                 this.beans[pos] = this.createRandomBean(pos[0], pos[1])
             }
@@ -276,39 +276,87 @@ class Level extends Phaser.Scene
         let somethingMatched = false;
 
         let matchedBeans = new Set()
-        let horizontal = []
-        let vertical = []
+        let match3 = []
+        let match4Hor = []
+        let match4Ver = []
+        let match5 = []
 
         for (const [key, value] of Object.entries(this.beans)) {
             let pos = this.getPosFromKey(key)
-            let posR = [pos[0] + TILE_WIDTH, pos[1]]
-            let posRR = [pos[0] + 2 * TILE_WIDTH, pos[1]]
+            let pos1R = [pos[0] + TILE_WIDTH, pos[1]]
+            let pos2R = [pos[0] + 2 * TILE_WIDTH, pos[1]]
+            let pos3R = [pos[0] + 3 * TILE_WIDTH, pos[1]]
+            let pos4R = [pos[0] + 4 * TILE_WIDTH, pos[1]]
 
-            let posD = [pos[0], pos[1] + TILE_HEIGHT]
-            let posDD = [pos[0], pos[1] + 2 * TILE_HEIGHT]
+            let pos1D = [pos[0], pos[1] + TILE_HEIGHT]
+            let pos2D = [pos[0], pos[1] + 2 * TILE_HEIGHT]
+            let pos3D = [pos[0], pos[1] + 3 * TILE_HEIGHT]
+            let pos4D = [pos[0], pos[1] + 4 * TILE_HEIGHT]
 
-            if (this.dictGet(this.beans, posR, null) != null &&
-                this.dictGet(this.beans, posRR, null) != null &&
-                this.dictGet(this.beans, posR, null).spriteIndex == value.spriteIndex &&
-                this.dictGet(this.beans, posRR, null).spriteIndex == value.spriteIndex) 
+
+            
+            if (this.dictGet(this.beans, pos1R, null) != null &&
+                this.dictGet(this.beans, pos2R, null) != null &&
+                this.dictGet(this.beans, pos3R, null) != null &&
+                this.dictGet(this.beans, pos4R, null) != null &&
+                this.dictGet(this.beans, pos1R, null).spriteIndex == value.spriteIndex &&
+                this.dictGet(this.beans, pos2R, null).spriteIndex == value.spriteIndex &&
+                this.dictGet(this.beans, pos3R, null).spriteIndex == value.spriteIndex &&
+                this.dictGet(this.beans, pos4R, null).spriteIndex == value.spriteIndex) 
             {
-                horizontal.push([pos, posR, posRR])
+                match5.push(pos2R)
+            }
+            else if (this.dictGet(this.beans, pos1R, null) != null &&
+                this.dictGet(this.beans, pos2R, null) != null &&
+                this.dictGet(this.beans, pos3R, null) != null &&
+                this.dictGet(this.beans, pos1R, null).spriteIndex == value.spriteIndex &&
+                this.dictGet(this.beans, pos2R, null).spriteIndex == value.spriteIndex &&
+                this.dictGet(this.beans, pos3R, null).spriteIndex == value.spriteIndex) 
+            {
+                match4Hor.push([pos2R, this.beans[pos2R].spriteIndex])
+            }
+            else if (this.dictGet(this.beans, pos1R, null) != null &&
+                this.dictGet(this.beans, pos2R, null) != null &&
+                this.dictGet(this.beans, pos1R, null).spriteIndex == value.spriteIndex &&
+                this.dictGet(this.beans, pos2R, null).spriteIndex == value.spriteIndex) 
+            {
+                match3.push([pos, pos1R, pos2R])
 
                 matchedBeans.add(pos.join(","))
-                matchedBeans.add(posR.join(","))
-                matchedBeans.add(posRR.join(","))
+                matchedBeans.add(pos1R.join(","))
+                matchedBeans.add(pos2R.join(","))
             }
 
-            if (this.dictGet(this.beans, posD, null) != null &&
-                this.dictGet(this.beans, posDD, null) != null &&
-                this.dictGet(this.beans, posD, null).spriteIndex == value.spriteIndex &&
-                this.dictGet(this.beans, posDD, null).spriteIndex == value.spriteIndex) 
+            if (this.dictGet(this.beans, pos1D, null) != null &&
+                this.dictGet(this.beans, pos2D, null) != null &&
+                this.dictGet(this.beans, pos3D, null) != null &&
+                this.dictGet(this.beans, pos4D, null) != null &&
+                this.dictGet(this.beans, pos1D, null).spriteIndex == value.spriteIndex &&
+                this.dictGet(this.beans, pos2D, null).spriteIndex == value.spriteIndex &&
+                this.dictGet(this.beans, pos3D, null).spriteIndex == value.spriteIndex &&
+                this.dictGet(this.beans, pos4D, null).spriteIndex == value.spriteIndex) 
             {
-                vertical.push([pos, posD, posDD])
+                match5.push(pos2D)
+            }
+            else if (this.dictGet(this.beans, pos1R, null) != null &&
+                this.dictGet(this.beans, pos2D, null) != null &&
+                this.dictGet(this.beans, pos3D, null) != null &&
+                this.dictGet(this.beans, pos1D, null).spriteIndex == value.spriteIndex &&
+                this.dictGet(this.beans, pos2D, null).spriteIndex == value.spriteIndex &&
+                this.dictGet(this.beans, pos3D, null).spriteIndex == value.spriteIndex) 
+            {
+                match4Ver.push([pos2D, this.beans[pos2D].spriteIndex])
+            }
+            else if (this.dictGet(this.beans, pos1D, null) != null &&
+                this.dictGet(this.beans, pos2D, null) != null &&
+                this.dictGet(this.beans, pos1D, null).spriteIndex == value.spriteIndex &&
+                this.dictGet(this.beans, pos2D, null).spriteIndex == value.spriteIndex) 
+            {
+                match3.push([pos, pos1D, pos2D])
 
                 matchedBeans.add(pos.join(","))
-                matchedBeans.add(posD.join(","))
-                matchedBeans.add(posDD.join(","))
+                matchedBeans.add(pos1D.join(","))
+                matchedBeans.add(pos2D.join(","))
             }
         }
 
@@ -317,6 +365,28 @@ class Level extends Phaser.Scene
             delete this.beans[value]
             somethingMatched = true
         }, this);
+
+        match4Hor.forEach(bug => {
+            this.beans[bug[0]] = this.createBean(bug[0][0], bug[0][1], bug[1] + 10)
+            this.beans[bug[0]].rotation = Math.PI / 2
+        }, this);
+
+        match4Ver.forEach(bug => {
+            if (this.beans[bug[0]] != null) {
+                this.beans[bug[0]].destroy()
+                delete this.beans[bug[0]]
+            }
+            this.beans[bug[0]] = this.createBean(bug[0][0], bug[0][1], bug[1] + 10)
+        }, this);
+
+        match5.forEach(pos => {
+            if (this.beans[pos] != null) {
+                this.beans[pos].destroy()
+                delete this.beans[pos]
+            }
+            this.beans[pos] = this.createBean(pos[0], pos[1], 9)
+        }, this);
+
 
         if (somethingMatched) {this.moveBeans()}
         else {this.candrag = true}
