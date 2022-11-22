@@ -11,6 +11,7 @@ class Level extends Phaser.Scene
         this.timer = null;
         this.updateTime = 120
         this.candrag = false;
+        this.numberOfBeans = 6
     }
 
     init (data)
@@ -55,7 +56,7 @@ class Level extends Phaser.Scene
     }
 
     createRandomBean(x, y) {
-        let spriteIndex = this.getRandomInt(3, 5);
+        let spriteIndex = this.getRandomInt(0, this.numberOfBeans - 1);
         return this.createBean(x, y, spriteIndex)
     }
 
@@ -125,7 +126,7 @@ class Level extends Phaser.Scene
         let tween = this.tweens.add({
             targets: [bean1, bean2],
             ease: 'Power',
-            duration: 100,
+            duration: this.updateTime,
             x: function(target, targetKey, value, targetIndex, totalTargets, tween) {
                 return target.originX;
             },
@@ -172,6 +173,8 @@ class Level extends Phaser.Scene
             value.isMoved = false
         }
 
+        this.generateBeans()
+
         while (changes) {
             changes = false
 
@@ -179,9 +182,7 @@ class Level extends Phaser.Scene
             let prio2 = []
             let prio3 = []
 
-            this.generateBeans()
-
-            for (const [key, value] of Object.entries(this.gameBoard)) {
+            for (const key of Object.keys(this.gameBoard)) {
 
                 let currentPos = this.getPosFromKey(key) 
 
@@ -224,8 +225,12 @@ class Level extends Phaser.Scene
             }
 
             changes = this.moveTiles(prio2, changes, -TILE_WIDTH, TILE_HEIGHT)
-            changes = this.moveTiles(prio3, changes, TILE_WIDTH, TILE_HEIGHT)
+            if(changes) {
+                somethingMoved = true;
+                continue; 
+            }
 
+            changes = this.moveTiles(prio3, changes, TILE_WIDTH, TILE_HEIGHT)
             if(changes) {
                 somethingMoved = true;
             }
@@ -234,7 +239,7 @@ class Level extends Phaser.Scene
         let tween = this.tweens.add({
             targets: Object.values(this.beans),
             ease: 'Power',
-            duration: 100,
+            duration: this.updateTime,
             x: function(target, targetKey, value, targetIndex, totalTargets, tween) {
                 return target.originX;
             },
