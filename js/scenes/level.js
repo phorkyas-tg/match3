@@ -11,11 +11,6 @@ class Level extends Phaser.Scene
         this.timer = null;
         this.updateTime = 120
         this.candrag = false;
-
-        // 0 - Moving State
-        // 1 - Match State
-        this.state = 0
-
     }
 
     init (data)
@@ -56,10 +51,11 @@ class Level extends Phaser.Scene
             }
         }, this);
 
+        this.moveBeans()
     }
 
     createRandomBean(x, y) {
-        let spriteIndex = this.getRandomInt(3, 8);
+        let spriteIndex = this.getRandomInt(3, 5);
         return this.createBean(x, y, spriteIndex)
     }
 
@@ -126,32 +122,20 @@ class Level extends Phaser.Scene
         this.beans[[x1, y1]] = bean2;
         this.beans[[x2, y2]] = bean1;
 
-        // bean1.x = x2;
-        // bean1.y = y2;
-        // bean2.x = x1;
-        // bean2.y = y1;
-
-        this.tweens.add({
-            targets: bean1,
-            ease: 'Power',
-            duration: this.updateTime - 10,
-            x: x2,
-            y: y2,
-            repeat: 0,
-            yoyo: false
-        }, this);
-
-
         let tween = this.tweens.add({
-            targets: bean2,
+            targets: [bean1, bean2],
             ease: 'Power',
-            duration: this.updateTime - 10,
-            x: x1,
-            y: y1,
+            duration: 100,
+            x: function(target, targetKey, value, targetIndex, totalTargets, tween) {
+                return target.originX;
+            },
+            y: function(target, targetKey, value, targetIndex, totalTargets, tween) {
+                return target.originY;
+            },
             repeat: 0,
             yoyo: false
         }, this);
-        tween.on('complete', function () { this.state = 3 }, this);
+        tween.on('complete', function () { this.moveBeans() }, this);
     }
 
     // The maximum is inclusive and the minimum is inclusive
@@ -247,7 +231,24 @@ class Level extends Phaser.Scene
             }
         }
 
-        if (somethingMoved == false) {this.state = 1}
+        let tween = this.tweens.add({
+            targets: Object.values(this.beans),
+            ease: 'Power',
+            duration: 100,
+            x: function(target, targetKey, value, targetIndex, totalTargets, tween) {
+                return target.originX;
+            },
+            y: function(target, targetKey, value, targetIndex, totalTargets, tween) {
+                return target.originY;
+            },
+            repeat: 0,
+            yoyo: false
+        }, this);
+
+        tween.on('complete', function () { 
+            if (somethingMoved) {this.moveBeans()}
+            else {this.matchBeans()}
+        }, this);
 
         return somethingMoved
     };
@@ -257,22 +258,10 @@ class Level extends Phaser.Scene
             if (this.beans[value[1]] != null && this.beans[value[1]].isMoved == false) {
                 changes = true
                 this.beans[value[0]] = this.beans[value[1]]
+                delete this.beans[value[1]]
                 this.beans[value[0]].isMoved = true
                 this.beans[value[0]].originX = this.beans[value[0]].x + deltaX;
                 this.beans[value[0]].originY = this.beans[value[0]].y + deltaY;
-
-                let tween = this.tweens.add({
-                    targets: this.beans[value[0]],
-                    ease: 'Power',
-                    duration: this.updateTime - 10,
-                    x: this.beans[value[0]].x + deltaX,
-                    y: this.beans[value[0]].y + deltaY,
-                    repeat: 0,
-                    yoyo: false
-                }, this);
-                tween.on('complete', function () { this.state = 0 }, this);
-
-                delete this.beans[value[1]]
             }
         }, this);
         return changes
@@ -324,8 +313,8 @@ class Level extends Phaser.Scene
             somethingMatched = true
         }, this);
 
-        if (somethingMatched == false) {this.state = 2}
-        else {this.state = 0}
+        if (somethingMatched) {this.moveBeans()}
+        else {this.candrag = true}
 
         return somethingMatched
     }
@@ -344,28 +333,7 @@ class Level extends Phaser.Scene
 
     update (time, delta)
     {
-        if (this.timer == null || this.timer + this.updateTime < time){
-            this.timer = time
 
-            if (this.state == 0){
-                this.state = -1;
-                this.moveBeans()
-            }
-
-            if (this.state == 1){
-                this.state = -1;
-                this.matchBeans()
-            }
-
-            if (this.state == 2){
-                this.state = -1;
-                this.candrag = true;
-            }
-
-            if (this.state == 3) {
-                this.state = 0;
-            }
-        }
     }
 }
 
