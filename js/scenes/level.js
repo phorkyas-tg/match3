@@ -272,126 +272,223 @@ class Level extends Phaser.Scene
         return changes
     }
 
+    compareArraysForCommonItem(arr1, arr2) {
+        return arr1.some(item => arr2.includes(item))
+    }
+
+    getCommonItem(arr1, arr2) {
+        let tmp = null;
+        arr1.forEach(item => {
+            if (arr2.includes(item)) {
+                tmp = item
+            }
+        })
+        return tmp
+    }
+
+    concatArraysByCommonValue(arr1, arr2) {
+        let commonValueArrays = {}
+        let commonItem = null
+
+        arr1.forEach(subArr1 => {
+            let tempArray = []
+            
+            arr2.forEach(subArr2 => {
+                const hasCommonItem = this.compareArraysForCommonItem(subArr1, subArr2)
+
+                if (hasCommonItem) {
+                    commonItem = this.getCommonItem(subArr1, subArr2)
+                    tempArray = tempArray.concat(subArr1.concat(subArr2))
+                }
+            })
+            commonValueArrays[commonItem] = tempArray
+        }, this);
+        return commonValueArrays
+    }
+
     matchBeans() {
         let somethingMatched = false;
 
-        let matchedBeans = new Set()
-        let match3 = []
-        let match4Hor = []
-        let match4Ver = []
-        let match5 = []
+        let [matchedVerticalBeans, horizontals] = this.getHorizontalMatches();
+        let [matchedHorizontalBeans, verticals, crosses] = this.getVerticalMatches(matchedVerticalBeans)
 
-        for (const [key, value] of Object.entries(this.beans)) {
-            let pos = this.getPosFromKey(key)
-            let pos1R = [pos[0] + TILE_WIDTH, pos[1]]
-            let pos2R = [pos[0] + 2 * TILE_WIDTH, pos[1]]
-            let pos3R = [pos[0] + 3 * TILE_WIDTH, pos[1]]
-            let pos4R = [pos[0] + 4 * TILE_WIDTH, pos[1]]
+        let bombs = this.concatArraysByCommonValue(crosses, horizontals)
 
-            let pos1D = [pos[0], pos[1] + TILE_HEIGHT]
-            let pos2D = [pos[0], pos[1] + 2 * TILE_HEIGHT]
-            let pos3D = [pos[0], pos[1] + 3 * TILE_HEIGHT]
-            let pos4D = [pos[0], pos[1] + 4 * TILE_HEIGHT]
-
-
-            
-            if (this.dictGet(this.beans, pos1R, null) != null &&
-                this.dictGet(this.beans, pos2R, null) != null &&
-                this.dictGet(this.beans, pos3R, null) != null &&
-                this.dictGet(this.beans, pos4R, null) != null &&
-                this.dictGet(this.beans, pos1R, null).spriteIndex == value.spriteIndex &&
-                this.dictGet(this.beans, pos2R, null).spriteIndex == value.spriteIndex &&
-                this.dictGet(this.beans, pos3R, null).spriteIndex == value.spriteIndex &&
-                this.dictGet(this.beans, pos4R, null).spriteIndex == value.spriteIndex) 
-            {
-                match5.push(pos2R)
-            }
-            else if (this.dictGet(this.beans, pos1R, null) != null &&
-                this.dictGet(this.beans, pos2R, null) != null &&
-                this.dictGet(this.beans, pos3R, null) != null &&
-                this.dictGet(this.beans, pos1R, null).spriteIndex == value.spriteIndex &&
-                this.dictGet(this.beans, pos2R, null).spriteIndex == value.spriteIndex &&
-                this.dictGet(this.beans, pos3R, null).spriteIndex == value.spriteIndex) 
-            {
-                match4Hor.push([pos2R, this.beans[pos2R].spriteIndex])
-            }
-            else if (this.dictGet(this.beans, pos1R, null) != null &&
-                this.dictGet(this.beans, pos2R, null) != null &&
-                this.dictGet(this.beans, pos1R, null).spriteIndex == value.spriteIndex &&
-                this.dictGet(this.beans, pos2R, null).spriteIndex == value.spriteIndex) 
-            {
-                match3.push([pos, pos1R, pos2R])
-
-                matchedBeans.add(pos.join(","))
-                matchedBeans.add(pos1R.join(","))
-                matchedBeans.add(pos2R.join(","))
-            }
-
-            if (this.dictGet(this.beans, pos1D, null) != null &&
-                this.dictGet(this.beans, pos2D, null) != null &&
-                this.dictGet(this.beans, pos3D, null) != null &&
-                this.dictGet(this.beans, pos4D, null) != null &&
-                this.dictGet(this.beans, pos1D, null).spriteIndex == value.spriteIndex &&
-                this.dictGet(this.beans, pos2D, null).spriteIndex == value.spriteIndex &&
-                this.dictGet(this.beans, pos3D, null).spriteIndex == value.spriteIndex &&
-                this.dictGet(this.beans, pos4D, null).spriteIndex == value.spriteIndex) 
-            {
-                match5.push(pos2D)
-            }
-            else if (this.dictGet(this.beans, pos1R, null) != null &&
-                this.dictGet(this.beans, pos2D, null) != null &&
-                this.dictGet(this.beans, pos3D, null) != null &&
-                this.dictGet(this.beans, pos1D, null).spriteIndex == value.spriteIndex &&
-                this.dictGet(this.beans, pos2D, null).spriteIndex == value.spriteIndex &&
-                this.dictGet(this.beans, pos3D, null).spriteIndex == value.spriteIndex) 
-            {
-                match4Ver.push([pos2D, this.beans[pos2D].spriteIndex])
-            }
-            else if (this.dictGet(this.beans, pos1D, null) != null &&
-                this.dictGet(this.beans, pos2D, null) != null &&
-                this.dictGet(this.beans, pos1D, null).spriteIndex == value.spriteIndex &&
-                this.dictGet(this.beans, pos2D, null).spriteIndex == value.spriteIndex) 
-            {
-                match3.push([pos, pos1D, pos2D])
-
-                matchedBeans.add(pos.join(","))
-                matchedBeans.add(pos1D.join(","))
-                matchedBeans.add(pos2D.join(","))
-            }
+        let spriteIndexByPos = {}
+        for (const key of Object.keys(bombs)) {
+            spriteIndexByPos[key] = this.beans[key].spriteIndex
         }
 
-        matchedBeans.forEach(value => {
-            this.beans[value].destroy()
-            delete this.beans[value]
-            somethingMatched = true
-        }, this);
+        for (const [key, arr] of Object.entries(bombs)) {
+            let pos = this.getPosFromKey(key)
 
-        match4Hor.forEach(bug => {
-            this.beans[bug[0]] = this.createBean(bug[0][0], bug[0][1], bug[1] + 10)
-            this.beans[bug[0]].rotation = Math.PI / 2
-        }, this);
+            let beans = []
+            let arrayAsSet = new Set(arr)
+            arrayAsSet.forEach(value => {
+                beans.push(this.beans[value])
+            })
 
-        match4Ver.forEach(bug => {
-            if (this.beans[bug[0]] != null) {
-                this.beans[bug[0]].destroy()
-                delete this.beans[bug[0]]
-            }
-            this.beans[bug[0]] = this.createBean(bug[0][0], bug[0][1], bug[1] + 10)
-        }, this);
+            let tween = this.tweens.add({
+                targets: beans,
+                ease: 'Power',
+                duration: this.updateTime,
+                x: function(target, targetKey, value, targetIndex, totalTargets, tween) {
+                    return pos[0];
+                },
+                y: function(target, targetKey, value, targetIndex, totalTargets, tween) {
+                    return pos[1];
+                },
+                repeat: 0,
+                yoyo: false
+            }, this);
 
-        match5.forEach(pos => {
-            if (this.beans[pos] != null) {
-                this.beans[pos].destroy()
-                delete this.beans[pos]
-            }
-            this.beans[pos] = this.createBean(pos[0], pos[1], 9)
-        }, this);
+            tween.on('complete', function (obj) { 
+                // beans.forEach(value => {
+                //     if (value !== undefined){
+                //         value.destroy()
+                //     }
+                // })
 
+                arrayAsSet.forEach(value => {
+                    console.log(value, arrayAsSet)
+                    this.beans[value].destroy()
+                    delete this.beans[value]
+                })
 
-        if (somethingMatched) {this.moveBeans()}
-        else {this.candrag = true}
+                this.beans[pos] = this.createBean(pos[0], pos[1], spriteIndexByPos[key] + 20)
+
+                // this.moveBeans()
+                
+            }, this);
+            
+            // arr.forEach(value => {
+            //     if (value in this.beans) {
+            //         delete this.beans[value]
+            //     }
+            // })
+            // this.beans[pos] = this.createBean(pos[0], pos[1], spriteIndexByPos[key] + 20)
+        }
+
+        
+
+        // for (const [key, arr] of Object.entries(bombs)) {
+        //     arr.forEach(value => {
+        //         if (value in this.beans) {
+        //             this.beans[value].destroy()
+        //             delete this.beans[value]
+        //         }
+        //     })
+        //     let pos = this.getPosFromKey(key)
+        //     this.beans[pos] = this.createBean(pos[0], pos[1], spriteIndexByPos[key] + 20)
+        // }
+
+        // for (const [key, value] of Object.entries(realBombs)) {
+        //     let pos = this.getPosFromKey(key)
+        //     if (pos in this.beans) {
+        //         this.beans[pos].destroy()
+        //         delete this.beans[pos]
+        //     }
+        //     this.beans[pos] = this.createBean(pos[0], pos[1], value + 20)
+        //     // somethingMatched = true
+        // }
+
+        // matchedHorizontalBeans.forEach(value => {
+        //     this.beans[value].destroy()
+        //     delete this.beans[value]
+        //     // somethingMatched = true
+        // }, this);
+
+        if (!somethingMatched) {this.candrag = true}
 
         return somethingMatched
+    }
+
+    getHorizontalMatches() {
+        let matchedBeans = new Set();
+
+        let horizontals = [];
+
+        for (const [key, value] of Object.entries(this.beans)) {
+            let pos = this.getPosFromKey(key);
+            if (matchedBeans.has(String(pos))) {
+                continue;
+            }
+
+            let i = 1;
+            let tempPos = [];
+
+            while (true) {
+                let nextHorPos = [pos[0] + (i * TILE_WIDTH), pos[1]];
+
+                // check if this tile exists if not break 
+                if (this.dictGet(this.beans, nextHorPos, null) == null) { break; }
+                // if it's not the same tile break
+                if (this.dictGet(this.beans, nextHorPos, null).spriteIndex != value.spriteIndex) {
+                    break;
+                }
+                tempPos.push(String(nextHorPos));
+                i++;
+            }
+
+            if (i >= 3) {
+                matchedBeans.add(String(pos));
+
+                tempPos.forEach(value => {
+                    matchedBeans.add(value);
+                });
+
+                horizontals.push([String(pos)].concat(tempPos));
+            }
+        }
+        return [matchedBeans, horizontals];
+    }
+
+    getVerticalMatches(horizontalMatches) {
+        let matchedBeans = new Set();
+
+        let verticals = [];
+        let crosses = []
+
+        for (const [key, value] of Object.entries(this.beans)) {
+            let pos = this.getPosFromKey(key);
+            if (matchedBeans.has(String(pos))) {
+                continue;
+            }
+
+            let i = 1;
+            let tempPos = [];
+            let isCrossed = horizontalMatches.has(String(pos));
+
+            while (true) {
+                let nextVerPos = [pos[0], pos[1] + (i * TILE_HEIGHT)];
+
+                // check if this tile exists if not break 
+                if (this.dictGet(this.beans, nextVerPos, null) == null) { break; }
+                // if it's not the same tile break
+                if (this.dictGet(this.beans, nextVerPos, null).spriteIndex != value.spriteIndex) {
+                    break;
+                }
+
+                if (horizontalMatches.has(String(nextVerPos))) {
+                    isCrossed = true;
+                }
+
+                tempPos.push(String(nextVerPos));
+                i++;
+            }
+
+            if (i >= 3) {
+                matchedBeans.add(String(pos));
+
+                tempPos.forEach(value => {
+                    matchedBeans.add(value);
+                });
+
+                if (isCrossed) {crosses.push([String(pos)].concat(tempPos))}
+                else {verticals.push([String(pos)].concat(tempPos));}
+            }
+        }
+        return [matchedBeans, verticals, crosses];
     }
 
     setBeansInteractive() {
