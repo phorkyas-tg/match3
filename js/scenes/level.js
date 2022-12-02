@@ -12,6 +12,8 @@ class Level extends Phaser.Scene
         this.updateTime = 120
         this.candrag = false;
         this.numberOfBeans = 3
+
+        this.debug = true;
     }
 
     init (data)
@@ -24,16 +26,17 @@ class Level extends Phaser.Scene
         this.load.image('match3_tiles', 'assets/tiles/match3.png')
         this.load.spritesheet('match3Sprite', 'assets/tiles/match3.png', { frameWidth: TILE_WIDTH, frameHeight: TILE_HEIGHT });
 
-        this.load.tilemapTiledJSON('tilemap', 'assets/tiles/level1.json')
+        this.load.tilemapTiledJSON('tilemap', 'assets/tiles/level2.json')
     }
 
     create ()
     {
         const map = this.make.tilemap({ key: 'tilemap' })
-        const tileset = map.addTilesetImage('match3', 'match3_tiles')
+        const tileset = map.addTilesetImage('tt_match3', 'match3_tiles')
 
         const mapLayer = map.createLayer('map', tileset)
         const genLayer = map.createLayer('generator', tileset)
+        const beanLayer = map.createLayer('beans', tileset)
 
 
         this.gameBoard = new Object()
@@ -46,11 +49,28 @@ class Level extends Phaser.Scene
             }
         }, this);
 
+        beanLayer.forEachTile(value => {
+            if (value.index != -1) { 
+                let pos = [value.x * TILE_WIDTH + TILE_WIDTH/2, value.y * TILE_HEIGHT + TILE_HEIGHT/2]
+                this.beans[pos] = this.createBean(pos[0], pos[1], value.index - 1)
+            }
+        }, this);
+        beanLayer.destroy()
+
         genLayer.forEachTile(value => {
             if (value.index != -1 && value.properties.isGenerator) { 
                 this.generators[[value.x * TILE_WIDTH, value.y * TILE_HEIGHT]] = 0;
             }
         }, this);
+
+        if (this.debug) {
+            let p = this.add.text(0, 0, '0/0').setColor("0xFFFFFF").setOrigin(0);
+
+            this.input.on('gameobjectmove', function (pointer, gameObject) {
+                p.text = gameObject.x + "/" + gameObject.y
+        
+            });
+        } 
 
         this.moveBeans()
     }
@@ -63,8 +83,12 @@ class Level extends Phaser.Scene
 
     createBean(x, y, spriteIndex) {
         let bean = this.physics.add.sprite(x, y, 'match3Sprite', spriteIndex)
-            .setInteractive()
-            .setOrigin(0.5);
+        return this.updateBean(bean, x, y, spriteIndex)
+    }
+        
+    updateBean(bean, x, y, spriteIndex) {
+        bean.setInteractive()
+        bean.setOrigin(0.5);
 
 
         this.input.setDraggable(bean);
@@ -288,119 +312,163 @@ class Level extends Phaser.Scene
 
     concatArraysByCommonValue(arr1, arr2) {
         let commonValueArrays = {}
-        let commonItem = null
 
-        arr1.forEach(subArr1 => {
-            let tempArray = []
-            
+        arr1.forEach(subArr1 => {         
             arr2.forEach(subArr2 => {
                 const hasCommonItem = this.compareArraysForCommonItem(subArr1, subArr2)
 
                 if (hasCommonItem) {
-                    commonItem = this.getCommonItem(subArr1, subArr2)
-                    tempArray = tempArray.concat(subArr1.concat(subArr2))
+                    let commonItem = this.getCommonItem(subArr1, subArr2)
+                    commonValueArrays[commonItem] = subArr1.concat(subArr2)
                 }
             })
-            commonValueArrays[commonItem] = tempArray
         }, this);
         return commonValueArrays
     }
 
-    matchBeans() {
-        let somethingMatched = false;
-
-        let [matchedVerticalBeans, horizontals] = this.getHorizontalMatches();
-        let [matchedHorizontalBeans, verticals, crosses] = this.getVerticalMatches(matchedVerticalBeans)
-
-        let bombs = this.concatArraysByCommonValue(crosses, horizontals)
-
+    matchBombs(bombs) {
+        // get the spriteindex of the bean that becomes a bomb
         let spriteIndexByPos = {}
         for (const key of Object.keys(bombs)) {
             spriteIndexByPos[key] = this.beans[key].spriteIndex
         }
 
+        // create temp beans that are only there to animate them in the tweens event
+        let tempBombs = []
         for (const [key, arr] of Object.entries(bombs)) {
-            let pos = this.getPosFromKey(key)
-
-            let beans = []
-            let arrayAsSet = new Set(arr)
-            arrayAsSet.forEach(value => {
-                beans.push(this.beans[value])
-            })
-
-            let tween = this.tweens.add({
-                targets: beans,
-                ease: 'Power',
-                duration: this.updateTime,
-                x: function(target, targetKey, value, targetIndex, totalTargets, tween) {
-                    return pos[0];
-                },
-                y: function(target, targetKey, value, targetIndex, totalTargets, tween) {
-                    return pos[1];
-                },
-                repeat: 0,
-                yoyo: false
-            }, this);
-
-            tween.on('complete', function (obj) { 
-                // beans.forEach(value => {
-                //     if (value !== undefined){
-                //         value.destroy()
-                //     }
-                // })
-
-                arrayAsSet.forEach(value => {
-                    console.log(value, arrayAsSet)
-                    this.beans[value].destroy()
-                    delete this.beans[value]
-                })
-
-                this.beans[pos] = this.createBean(pos[0], pos[1], spriteIndexByPos[key] + 20)
-
-                // this.moveBeans()
+            arr.forEach(value => {
+                let beanPos = this.getPosFromKey(value)
+                let tempBomb = this.createBean(beanPos[0], beanPos[1], this.beans[beanPos].spriteIndex)
                 
-            }, this);
-            
-            // arr.forEach(value => {
-            //     if (value in this.beans) {
-            //         delete this.beans[value]
-            //     }
-            // })
-            // this.beans[pos] = this.createBean(pos[0], pos[1], spriteIndexByPos[key] + 20)
+                let targetPos = this.getPosFromKey(key)
+                tempBomb.targetX = targetPos[0]
+                tempBomb.targetY = targetPos[1]
+
+                tempBombs.push(tempBomb)
+            })
         }
 
-        
+        // delete all the beans involved
+        for (const [key, arr] of Object.entries(bombs)) {
+            arr.forEach(value => {
+                if (value in this.beans){
+                    this.beans[value].destroy()
+                    delete this.beans[value]
+                }
+            })
+        }
 
-        // for (const [key, arr] of Object.entries(bombs)) {
-        //     arr.forEach(value => {
-        //         if (value in this.beans) {
-        //             this.beans[value].destroy()
-        //             delete this.beans[value]
-        //         }
-        //     })
-        //     let pos = this.getPosFromKey(key)
-        //     this.beans[pos] = this.createBean(pos[0], pos[1], spriteIndexByPos[key] + 20)
-        // }
+        // create the new bombs
+        for (const key of Object.keys(bombs)) {
+            let pos = this.getPosFromKey(key)
+            this.beans[pos] = this.createBean(pos[0], pos[1], spriteIndexByPos[key] + 20)
+        }
+        return tempBombs
+    }
 
-        // for (const [key, value] of Object.entries(realBombs)) {
-        //     let pos = this.getPosFromKey(key)
-        //     if (pos in this.beans) {
-        //         this.beans[pos].destroy()
-        //         delete this.beans[pos]
-        //     }
-        //     this.beans[pos] = this.createBean(pos[0], pos[1], value + 20)
-        //     // somethingMatched = true
-        // }
+    match5OrHigher(horizontals, verticals) {
+        // get every match 5 or higher
+        let match5 = []
+        horizontals.concat(verticals).forEach(value => {
+            if (value.length >= 5) {
+                match5.push(value)
+            }
+        })
 
-        // matchedHorizontalBeans.forEach(value => {
-        //     this.beans[value].destroy()
-        //     delete this.beans[value]
-        //     // somethingMatched = true
-        // }, this);
+        // get the spriteindex of the bean that becomes a match 5
+        let spriteIndexByPos = {}
+        match5.forEach(value => {
+            let pos = value[Math.floor(value.length / 2)]
+            spriteIndexByPos[pos] = this.beans[pos].spriteIndex
+        })
 
-        if (!somethingMatched) {this.candrag = true}
+        // create temp beans that are only there to animate them in the tweens event
+        let tempMatch5 = []
+        match5.forEach(arr => {
+            let targetPos = this.getPosFromKey(arr[Math.floor(arr.length / 2)])
+            
+            arr.forEach(value => {
+                let beanPos = this.getPosFromKey(value)
+                let temp = this.createBean(beanPos[0], beanPos[1], this.beans[beanPos].spriteIndex)
 
-        return somethingMatched
+                temp.targetX = targetPos[0]
+                temp.targetY = targetPos[1]
+
+                tempMatch5.push(temp)
+            })
+        })
+
+        // delete all the beans involved
+        match5.forEach(arr => {
+            arr.forEach(value => {
+                if (value in this.beans){
+                    this.beans[value].destroy()
+                    delete this.beans[value]
+                }
+            })
+        })
+
+        // create the new match 5
+        for (const key of Object.keys(spriteIndexByPos)) {
+            let pos = this.getPosFromKey(key)
+            this.beans[pos] = this.createBean(pos[0], pos[1], 9)
+        }
+
+        return tempMatch5
+    }
+
+    animateMatch(match) {
+        let tween = this.tweens.add({
+            targets: match,
+            ease: 'Power',
+            duration: this.updateTime,
+            x: function(target, targetKey, value, targetIndex, totalTargets, tween) {
+                return target.targetX;
+            },
+            y: function(target, targetKey, value, targetIndex, totalTargets, tween) {
+                return target.targetY;
+            },
+            repeat: 0,
+            yoyo: false
+        }, this);
+
+        tween.on('complete', function (obj) { 
+            let somethingMatched = false;
+            tween.targets.forEach(value => {
+                value.destroy()
+                somethingMatched = true
+            })
+            if (!somethingMatched) {this.candrag = true}
+            else {this.matchBeans()}
+            
+        }, this);
+    }
+
+    matchBeans() {
+        let [matchedVerticalBeans, horizontals] = this.getHorizontalMatches();
+        let [matchedHorizontalBeans, verticals, crosses] = this.getVerticalMatches(matchedVerticalBeans)
+
+        // PRIO 1 Match 5+
+        let match5 = this.match5OrHigher(horizontals, verticals)
+        if (match5.length > 0) {
+            this.animateMatch(match5)
+            return true
+        }
+
+        // PRIO 2 Bombs
+        let bombs = this.concatArraysByCommonValue(crosses, horizontals)
+        bombs = this.matchBombs(bombs)
+        if (bombs.length > 0) {
+            this.animateMatch(bombs)
+            return true
+        }
+
+        this.moveBeans()
+        return false
+        // TODO: candrag must be set at any point
+        // if (!somethingMatched) {this.candrag = true}
+
+        // return somethingMatched
     }
 
     getHorizontalMatches() {
@@ -485,7 +553,7 @@ class Level extends Phaser.Scene
                 });
 
                 if (isCrossed) {crosses.push([String(pos)].concat(tempPos))}
-                else {verticals.push([String(pos)].concat(tempPos));}
+                verticals.push([String(pos)].concat(tempPos));
             }
         }
         return [matchedBeans, verticals, crosses];
