@@ -10,9 +10,9 @@ class Level extends Phaser.Scene
 
         this.timer = null;
         this.updateTime = 120
-        this.animationTime = 200
+        this.animationTime = 300
         this.candrag = false;
-        this.numberOfBeans = 2
+        this.numberOfBeans = 3
 
         this.debug = true;
     }
@@ -452,21 +452,21 @@ class Level extends Phaser.Scene
 
     match5OrHigher(horizontals, verticals) {
         // get every match 5 or higher
-        let match5 = []
+        let match = []
         horizontals.concat(verticals).forEach(value => {
             if (value.length >= 5) {
-                match5.push(value)
+                match.push(value)
             }
         })
 
         // get the spriteindex of the bean that becomes a match 5
-        let spriteIndexByPos = this.getSpriteIndexByPos(match5)
+        let spriteIndexByPos = this.getSpriteIndexByPos(match)
 
         // create temp beans that are only there to animate them in the tweens event
-        let tempMatch5 = this.createTempBeans(match5)
+        let tempMatch5 = this.createTempBeans(match)
 
         // delete all the beans involved
-        this.deleteAllBeans(match5)
+        this.deleteAllBeans(match)
 
         // create the new match 5
         for (const key of Object.keys(spriteIndexByPos)) {
@@ -479,21 +479,21 @@ class Level extends Phaser.Scene
 
     match4(matches, spriteRotation) {
         // get every match 5 or higher
-        let match4 = []
+        let match = []
         matches.forEach(value => {
             if (value.length == 4) {
-                match4.push(value)
+                match.push(value)
             }
         })
 
         // get the spriteindex of the bean that becomes a match 5
-        let spriteIndexByPos = this.getSpriteIndexByPos(match4)
+        let spriteIndexByPos = this.getSpriteIndexByPos(match)
 
         // create temp beans that are only there to animate them in the tweens event
-        let tempMatch4 = this.createTempBeans(match4)
+        let tempMatch4 = this.createTempBeans(match)
 
         // delete all the beans involved
-        this.deleteAllBeans(match4)
+        this.deleteAllBeans(match)
 
         // create the new match 4
         for (const [key, value] of Object.entries(spriteIndexByPos)) {
@@ -507,26 +507,112 @@ class Level extends Phaser.Scene
 
     match3(horizontals, verticals) {
         // get every match 5 or higher
-        let match3 = []
+        let match = []
         horizontals.concat(verticals).forEach(value => {
             if (value.length == 3) {
-                match3.push(value)
+                match.push(value)
             }
         })
 
         // create temp beans that are only there to animate them in the tweens event
-        let tempMatch3 = this.createTempBeans(match3)
+        let tempMatch3 = this.createTempBeans(match)
 
         // delete all the beans involved
-        this.deleteAllBeans(match3)
+        this.deleteAllBeans(match)
 
         return tempMatch3
     }
 
     animateMatch(match) {
+        // handle power ups
+        let newPowerups = []
+
+        let newMatches = []
         match.forEach(bean => {
-            if (bean.spriteIndex >= 9) {console.log("PowerUp")}
+            if (bean.spriteIndex == 9) {console.log("SuperPowerUp")}
+
+            else if (bean.spriteIndex >= 20) {
+                // console.log("BombPowerUp", bean.x, bean.y)
+            }
+            
+            else if (bean.spriteIndex >= 10 && bean.rotation == 0) {
+                // console.log("BeatleVerticalPowerUp", bean.x, bean.y)
+                // get all beans that are on this vertical line and destroy them
+                for (const [key, value] of Object.entries(this.beans)) {
+                    let pos = this.getPosFromKey(key)
+                    if (pos[0] == bean.x) {
+                        //  identify powerUp
+                        if (this.beans[pos].spriteIndex >= 9) {
+                            let powerUp = this.createBean(pos[0], pos[1], this.beans[key].spriteIndex)
+                            powerUp.setRotation(this.beans[key].rotation)
+                            powerUp.targetX = pos[0]
+                            powerUp.targetY = pos[1]
+                            newPowerups.push(powerUp)
+                        }
+                        
+                        this.beans[key].destroy()
+                        delete this.beans[key]
+
+                    }
+                }
+
+                // create two animated beatles
+                let beatle1 = this.createBean(bean.x, bean.y, bean.spriteIndex)
+                beatle1.setRotation(bean.rotation)
+                beatle1.targetX = bean.x
+                beatle1.targetY = 0
+
+                let beatle2 = this.createBean(bean.x, bean.y, bean.spriteIndex)
+                beatle2.setRotation(bean.rotation)
+                beatle2.rotation += Math.PI
+                beatle2.targetX = bean.x
+                beatle2.targetY = CANVAS_WIDTH
+
+                newMatches.push(beatle1)
+                newMatches.push(beatle2)
+
+                bean.destroy()
+            }
+
+            else if (bean.spriteIndex >= 10) {
+                // console.log("BeatleHorizontalPowerUp", bean.x, bean.y)
+                // get all beans that are on this horizontal line and destroy them
+                for (const [key, value] of Object.entries(this.beans)) {
+                    let pos = this.getPosFromKey(key)
+                    
+                    if (pos[1] == bean.y) {
+                        //  identify powerUp
+                        if (this.beans[pos].spriteIndex > 9) {
+                            let powerUp = this.createBean(pos[0], pos[1], this.beans[key].spriteIndex)
+                            powerUp.setRotation(this.beans[key].rotation)
+                            powerUp.targetX = pos[0]
+                            powerUp.targetY = pos[1]
+                            newPowerups.push(powerUp)
+                        }
+                        this.beans[key].destroy()
+                        delete this.beans[key]
+                    }
+                }
+
+                // create two animated beatles
+                let beatle1 = this.createBean(bean.x, bean.y, bean.spriteIndex)
+                beatle1.setRotation(bean.rotation)
+                beatle1.targetX = CANVAS_WIDTH
+                beatle1.targetY = bean.y
+
+                let beatle2 = this.createBean(bean.x, bean.y, bean.spriteIndex)
+                beatle2.setRotation(bean.rotation)
+                beatle2.rotation += Math.PI
+                beatle2.targetX = 0
+                beatle2.targetY = bean.y
+
+                newMatches.push(beatle1)
+                newMatches.push(beatle2)
+
+                bean.destroy()
+            }
         });
+        match = match.concat(newMatches)
 
         let tween = this.tweens.add({
             targets: match,
@@ -548,7 +634,10 @@ class Level extends Phaser.Scene
                 value.destroy()
                 somethingMatched = true
             })
-            if (!somethingMatched) {this.candrag = true}
+            if (newPowerups.length > 0) {
+                this.animateMatch(newPowerups)
+            }
+            else if (!somethingMatched) {this.candrag = true}
             else {this.matchBeans()}
             
         }, this);
