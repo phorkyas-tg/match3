@@ -27,13 +27,13 @@ class Level extends Phaser.Scene
         this.load.image('match3_tiles', 'assets/tiles/match3.png')
         this.load.spritesheet('match3Sprite', 'assets/tiles/match3.png', { frameWidth: TILE_WIDTH, frameHeight: TILE_HEIGHT });
 
-        this.load.tilemapTiledJSON('tilemap', 'assets/tiles/level2.json')
+        this.load.tilemapTiledJSON('tilemap', 'assets/tiles/level1.json')
     }
 
     create ()
     {
         const map = this.make.tilemap({ key: 'tilemap' })
-        const tileset = map.addTilesetImage('tt_match3', 'match3_tiles')
+        const tileset = map.addTilesetImage('match3', 'match3_tiles')
 
         const mapLayer = map.createLayer('map', tileset)
         const genLayer = map.createLayer('generator', tileset)
@@ -50,13 +50,15 @@ class Level extends Phaser.Scene
             }
         }, this);
 
-        beanLayer.forEachTile(value => {
-            if (value.index != -1) { 
-                let pos = [value.x * TILE_WIDTH + TILE_WIDTH/2, value.y * TILE_HEIGHT + TILE_HEIGHT/2]
-                this.beans[pos] = this.createBean(pos[0], pos[1], value.index - 1)
-            }
-        }, this);
-        beanLayer.destroy()
+        if (beanLayer != null) {
+            beanLayer.forEachTile(value => {
+                if (value.index != -1) { 
+                    let pos = [value.x * TILE_WIDTH + TILE_WIDTH/2, value.y * TILE_HEIGHT + TILE_HEIGHT/2]
+                    this.beans[pos] = this.createBean(pos[0], pos[1], value.index - 1)
+                }
+            }, this);
+            beanLayer.destroy()
+        }
 
         genLayer.forEachTile(value => {
             if (value.index != -1 && value.properties.isGenerator) { 
@@ -372,7 +374,7 @@ class Level extends Phaser.Scene
         // get the spriteindex of the bean that becomes a bomb
         let spriteIndexByPos = {}
         for (const key of Object.keys(bombs)) {
-            spriteIndexByPos[key] = this.beans[key].spriteIndex
+            spriteIndexByPos[key] = this.beans[key].matchIndex
         }
 
         // create temp beans that are only there to animate them in the tweens event
@@ -380,7 +382,7 @@ class Level extends Phaser.Scene
         for (const [key, arr] of Object.entries(bombs)) {
             arr.forEach(value => {
                 let beanPos = this.getPosFromKey(value)
-                let tempBomb = this.createBean(beanPos[0], beanPos[1], this.beans[beanPos].spriteIndex)
+                let tempBomb = this.createBean(beanPos[0], beanPos[1], this.beans[beanPos].matchIndex)
                 
                 let targetPos = this.getPosFromKey(key)
                 tempBomb.targetX = targetPos[0]
@@ -408,6 +410,44 @@ class Level extends Phaser.Scene
         return tempBombs
     }
 
+    getSpriteIndexByPos(match) {
+        let spriteIndexByPos = {}
+        match.forEach(value => {
+            let pos = value[Math.floor(value.length / 2)]
+            spriteIndexByPos[pos] = this.beans[pos].matchIndex
+        })
+        return spriteIndexByPos
+    }
+
+    createTempBeans(match) {
+        let tempBeans = []
+        match.forEach(arr => {
+            let targetPos = this.getPosFromKey(arr[Math.floor(arr.length / 2)])
+            
+            arr.forEach(value => {
+                let beanPos = this.getPosFromKey(value)
+                let temp = this.createBean(beanPos[0], beanPos[1], this.beans[beanPos].matchIndex)
+
+                temp.targetX = targetPos[0]
+                temp.targetY = targetPos[1]
+
+                tempBeans.push(temp)
+            })
+        })
+        return tempBeans
+    }
+
+    deleteAllBeans(match) {
+        match.forEach(arr => {
+            arr.forEach(value => {
+                if (value in this.beans){
+                    this.beans[value].destroy()
+                    delete this.beans[value]
+                }
+            })
+        })
+    }
+
     match5OrHigher(horizontals, verticals) {
         // get every match 5 or higher
         let match5 = []
@@ -418,37 +458,13 @@ class Level extends Phaser.Scene
         })
 
         // get the spriteindex of the bean that becomes a match 5
-        let spriteIndexByPos = {}
-        match5.forEach(value => {
-            let pos = value[Math.floor(value.length / 2)]
-            spriteIndexByPos[pos] = this.beans[pos].spriteIndex
-        })
+        let spriteIndexByPos = this.getSpriteIndexByPos(match5)
 
         // create temp beans that are only there to animate them in the tweens event
-        let tempMatch5 = []
-        match5.forEach(arr => {
-            let targetPos = this.getPosFromKey(arr[Math.floor(arr.length / 2)])
-            
-            arr.forEach(value => {
-                let beanPos = this.getPosFromKey(value)
-                let temp = this.createBean(beanPos[0], beanPos[1], this.beans[beanPos].spriteIndex)
-
-                temp.targetX = targetPos[0]
-                temp.targetY = targetPos[1]
-
-                tempMatch5.push(temp)
-            })
-        })
+        let tempMatch5 = this.createTempBeans(match5)
 
         // delete all the beans involved
-        match5.forEach(arr => {
-            arr.forEach(value => {
-                if (value in this.beans){
-                    this.beans[value].destroy()
-                    delete this.beans[value]
-                }
-            })
-        })
+        this.deleteAllBeans(match5)
 
         // create the new match 5
         for (const key of Object.keys(spriteIndexByPos)) {
@@ -469,37 +485,13 @@ class Level extends Phaser.Scene
         })
 
         // get the spriteindex of the bean that becomes a match 5
-        let spriteIndexByPos = {}
-        match4.forEach(value => {
-            let pos = value[Math.floor(value.length / 2)]
-            spriteIndexByPos[pos] = this.beans[pos].spriteIndex
-        })
+        let spriteIndexByPos = this.getSpriteIndexByPos(match4)
 
         // create temp beans that are only there to animate them in the tweens event
-        let tempMatch4 = []
-        match4.forEach(arr => {
-            let targetPos = this.getPosFromKey(arr[Math.floor(arr.length / 2)])
-            
-            arr.forEach(value => {
-                let beanPos = this.getPosFromKey(value)
-                let temp = this.createBean(beanPos[0], beanPos[1], this.beans[beanPos].spriteIndex)
-
-                temp.targetX = targetPos[0]
-                temp.targetY = targetPos[1]
-
-                tempMatch4.push(temp)
-            })
-        })
+        let tempMatch4 = this.createTempBeans(match4)
 
         // delete all the beans involved
-        match4.forEach(arr => {
-            arr.forEach(value => {
-                if (value in this.beans){
-                    this.beans[value].destroy()
-                    delete this.beans[value]
-                }
-            })
-        })
+        this.deleteAllBeans(match4)
 
         // create the new match 4
         for (const [key, value] of Object.entries(spriteIndexByPos)) {
@@ -521,35 +513,19 @@ class Level extends Phaser.Scene
         })
 
         // create temp beans that are only there to animate them in the tweens event
-        let tempMatch3 = []
-        match3.forEach(arr => {
-            let targetPos = this.getPosFromKey(arr[Math.floor(arr.length / 2)])
-            
-            arr.forEach(value => {
-                let beanPos = this.getPosFromKey(value)
-                let temp = this.createBean(beanPos[0], beanPos[1], this.beans[beanPos].spriteIndex)
-
-                temp.targetX = targetPos[0]
-                temp.targetY = targetPos[1]
-
-                tempMatch3.push(temp)
-            })
-        })
+        let tempMatch3 = this.createTempBeans(match3)
 
         // delete all the beans involved
-        match3.forEach(arr => {
-            arr.forEach(value => {
-                if (value in this.beans){
-                    this.beans[value].destroy()
-                    delete this.beans[value]
-                }
-            })
-        })
+        this.deleteAllBeans(match3)
 
         return tempMatch3
     }
 
     animateMatch(match) {
+        match.forEach(bean => {
+            if (bean.spriteIndex >= 9) {console.log("PowerUp")}
+        });
+
         let tween = this.tweens.add({
             targets: match,
             ease: 'Power',
