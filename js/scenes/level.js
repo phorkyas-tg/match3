@@ -11,7 +11,7 @@ class Level extends Phaser.Scene
         this.timer = null;
         this.updateTime = 120
         this.candrag = false;
-        this.numberOfBeans = 3
+        this.numberOfBeans = 2
 
         this.debug = true;
     }
@@ -276,7 +276,8 @@ class Level extends Phaser.Scene
 
         tween.on('complete', function () { 
             if (somethingMoved) {this.moveBeans()}
-            else {this.matchBeans()}
+            else if (this.canMatch()) {this.matchBeans()}
+            else {this.candrag = true}
         }, this);
 
         return somethingMoved
@@ -417,6 +418,96 @@ class Level extends Phaser.Scene
         return tempMatch5
     }
 
+    match4(matches, spriteRotation) {
+        // get every match 5 or higher
+        let match4 = []
+        matches.forEach(value => {
+            if (value.length == 4) {
+                match4.push(value)
+            }
+        })
+
+        // get the spriteindex of the bean that becomes a match 5
+        let spriteIndexByPos = {}
+        match4.forEach(value => {
+            let pos = value[Math.floor(value.length / 2)]
+            spriteIndexByPos[pos] = this.beans[pos].spriteIndex
+        })
+
+        // create temp beans that are only there to animate them in the tweens event
+        let tempMatch4 = []
+        match4.forEach(arr => {
+            let targetPos = this.getPosFromKey(arr[Math.floor(arr.length / 2)])
+            
+            arr.forEach(value => {
+                let beanPos = this.getPosFromKey(value)
+                let temp = this.createBean(beanPos[0], beanPos[1], this.beans[beanPos].spriteIndex)
+
+                temp.targetX = targetPos[0]
+                temp.targetY = targetPos[1]
+
+                tempMatch4.push(temp)
+            })
+        })
+
+        // delete all the beans involved
+        match4.forEach(arr => {
+            arr.forEach(value => {
+                if (value in this.beans){
+                    this.beans[value].destroy()
+                    delete this.beans[value]
+                }
+            })
+        })
+
+        // create the new match 4
+        for (const [key, value] of Object.entries(spriteIndexByPos)) {
+            let pos = this.getPosFromKey(key)
+            this.beans[pos] = this.createBean(pos[0], pos[1], value + 10)
+            this.beans[pos].setRotation(spriteRotation)
+        }
+
+        return tempMatch4
+    }
+
+    match3(horizontals, verticals) {
+        // get every match 5 or higher
+        let match3 = []
+        horizontals.concat(verticals).forEach(value => {
+            if (value.length == 3) {
+                match3.push(value)
+            }
+        })
+
+        // create temp beans that are only there to animate them in the tweens event
+        let tempMatch3 = []
+        match3.forEach(arr => {
+            let targetPos = this.getPosFromKey(arr[Math.floor(arr.length / 2)])
+            
+            arr.forEach(value => {
+                let beanPos = this.getPosFromKey(value)
+                let temp = this.createBean(beanPos[0], beanPos[1], this.beans[beanPos].spriteIndex)
+
+                temp.targetX = targetPos[0]
+                temp.targetY = targetPos[1]
+
+                tempMatch3.push(temp)
+            })
+        })
+
+        // delete all the beans involved
+        match3.forEach(arr => {
+            arr.forEach(value => {
+                if (value in this.beans){
+                    this.beans[value].destroy()
+                    delete this.beans[value]
+                }
+            })
+        })
+
+        return tempMatch3
+    }
+
     animateMatch(match) {
         let tween = this.tweens.add({
             targets: match,
@@ -444,6 +535,16 @@ class Level extends Phaser.Scene
         }, this);
     }
 
+    canMatch() {
+        let [matchedVerticalBeans, horizontals] = this.getHorizontalMatches();
+        let [matchedHorizontalBeans, verticals, crosses] = this.getVerticalMatches(matchedVerticalBeans)
+
+        if (verticals.length > 0 || horizontals.length > 0) {
+            return true
+        }
+        return false
+    }
+
     matchBeans() {
         let [matchedVerticalBeans, horizontals] = this.getHorizontalMatches();
         let [matchedHorizontalBeans, verticals, crosses] = this.getVerticalMatches(matchedVerticalBeans)
@@ -463,12 +564,25 @@ class Level extends Phaser.Scene
             return true
         }
 
+        // PRIO 3 Match 4
+        let match4Hor = this.match4(horizontals, Math.PI / 2)
+        let match4Ver = this.match4(verticals, 0)
+        let match4 = match4Ver.concat(match4Hor)
+        if (match4.length > 0) {
+            this.animateMatch(match4)
+            return true
+        }
+
+
+        // PRIO 4 Match 3
+        let match3 = this.match3(horizontals, verticals)
+        if (match3.length > 0) {
+            this.animateMatch(match3)
+            return true
+        }
+
         this.moveBeans()
         return false
-        // TODO: candrag must be set at any point
-        // if (!somethingMatched) {this.candrag = true}
-
-        // return somethingMatched
     }
 
     getHorizontalMatches() {
@@ -498,7 +612,8 @@ class Level extends Phaser.Scene
                 i++;
             }
 
-            if (i >= 3) {
+            // must be beans and at least 3 together
+            if (i >= 3 && value.spriteIndex < 9) {
                 matchedBeans.add(String(pos));
 
                 tempPos.forEach(value => {
@@ -545,7 +660,8 @@ class Level extends Phaser.Scene
                 i++;
             }
 
-            if (i >= 3) {
+            // must be beans and at least 3 together
+            if (i >= 3 && value.spriteIndex < 9) {
                 matchedBeans.add(String(pos));
 
                 tempPos.forEach(value => {
