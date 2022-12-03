@@ -166,7 +166,42 @@ class Level extends Phaser.Scene
             repeat: 0,
             yoyo: false
         }, this);
-        tween.on('complete', function () { this.moveBeans() }, this);
+        
+        tween.on('complete', function () { 
+            if (this.canMatch()) {
+                this.moveBeans() 
+            }
+            else {
+                // there is nothing to match so reverse
+                let bean1 = this.beans[[x1, y1]];
+                let bean2 = this.beans[[x2, y2]];
+
+                bean1.originX = x2;
+                bean1.originY = y2;
+                bean2.originX = x1;
+                bean2.originY = y1;
+
+                this.beans[[x1, y1]] = bean2;
+                this.beans[[x2, y2]] = bean1;
+
+                let reverseTween = this.tweens.add({
+                    targets: [bean1, bean2],
+                    ease: 'Power',
+                    duration: this.updateTime,
+                    x: function(target, targetKey, value, targetIndex, totalTargets, tween) {
+                        return target.originX;
+                    },
+                    y: function(target, targetKey, value, targetIndex, totalTargets, tween) {
+                        return target.originY;
+                    },
+                    repeat: 0,
+                    yoyo: false
+                }, this);
+                
+                reverseTween.on('complete', function () { this.candrag = true }, this);
+            }
+            
+        }, this);
     }
 
     // The maximum is inclusive and the minimum is inclusive
