@@ -382,7 +382,8 @@ class Level extends Phaser.Scene
         for (const [key, arr] of Object.entries(bombs)) {
             arr.forEach(value => {
                 let beanPos = this.getPosFromKey(value)
-                let tempBomb = this.createBean(beanPos[0], beanPos[1], this.beans[beanPos].matchIndex)
+                let tempBomb = this.createBean(beanPos[0], beanPos[1], this.beans[beanPos].spriteIndex)
+                tempBomb.rotation = this.beans[beanPos].rotation
                 
                 let targetPos = this.getPosFromKey(key)
                 tempBomb.targetX = targetPos[0]
@@ -426,7 +427,8 @@ class Level extends Phaser.Scene
             
             arr.forEach(value => {
                 let beanPos = this.getPosFromKey(value)
-                let temp = this.createBean(beanPos[0], beanPos[1], this.beans[beanPos].matchIndex)
+                let temp = this.createBean(beanPos[0], beanPos[1], this.beans[beanPos].spriteIndex)
+                temp.rotation = this.beans[beanPos].rotation
 
                 temp.targetX = targetPos[0]
                 temp.targetY = targetPos[1]
