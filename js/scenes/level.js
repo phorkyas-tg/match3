@@ -10,6 +10,7 @@ class Level extends Phaser.Scene
 
         this.timer = null;
         this.updateTime = 120
+        this.animationTime = 200
         this.candrag = false;
         this.numberOfBeans = 2
 
@@ -129,7 +130,12 @@ class Level extends Phaser.Scene
         }, this);
 
         bean.isMoved = false;
+        // Index of the sprite
         bean.spriteIndex = spriteIndex
+        // indicates if two tiles match
+        // e.g. an orange bomb and an orange bean have different sprites but they should match
+        bean.matchIndex = spriteIndex % 10
+
         bean.originX = x
         bean.originY = y
         return bean
@@ -512,7 +518,7 @@ class Level extends Phaser.Scene
         let tween = this.tweens.add({
             targets: match,
             ease: 'Power',
-            duration: this.updateTime,
+            duration: this.animationTime,
             x: function(target, targetKey, value, targetIndex, totalTargets, tween) {
                 return target.targetX;
             },
@@ -545,6 +551,7 @@ class Level extends Phaser.Scene
         return false
     }
 
+    // match calls itself as long there is something to match - after that it calls the move method
     matchBeans() {
         let [matchedVerticalBeans, horizontals] = this.getHorizontalMatches();
         let [matchedHorizontalBeans, verticals, crosses] = this.getVerticalMatches(matchedVerticalBeans)
@@ -605,7 +612,7 @@ class Level extends Phaser.Scene
                 // check if this tile exists if not break 
                 if (this.dictGet(this.beans, nextHorPos, null) == null) { break; }
                 // if it's not the same tile break
-                if (this.dictGet(this.beans, nextHorPos, null).spriteIndex != value.spriteIndex) {
+                if (this.dictGet(this.beans, nextHorPos, null).matchIndex != value.matchIndex) {
                     break;
                 }
                 tempPos.push(String(nextHorPos));
@@ -613,7 +620,7 @@ class Level extends Phaser.Scene
             }
 
             // must be beans and at least 3 together
-            if (i >= 3 && value.spriteIndex < 9) {
+            if (i >= 3 && value.matchIndex < 9) {
                 matchedBeans.add(String(pos));
 
                 tempPos.forEach(value => {
@@ -648,7 +655,7 @@ class Level extends Phaser.Scene
                 // check if this tile exists if not break 
                 if (this.dictGet(this.beans, nextVerPos, null) == null) { break; }
                 // if it's not the same tile break
-                if (this.dictGet(this.beans, nextVerPos, null).spriteIndex != value.spriteIndex) {
+                if (this.dictGet(this.beans, nextVerPos, null).matchIndex != value.matchIndex) {
                     break;
                 }
 
@@ -661,7 +668,7 @@ class Level extends Phaser.Scene
             }
 
             // must be beans and at least 3 together
-            if (i >= 3 && value.spriteIndex < 9) {
+            if (i >= 3 && value.matchIndex < 9) {
                 matchedBeans.add(String(pos));
 
                 tempPos.forEach(value => {
