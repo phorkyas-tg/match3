@@ -12,9 +12,7 @@ class Level extends Phaser.Scene
         this.updateTime = 120
         this.animationTime = 500
         this.candrag = false;
-        this.numberOfBeans = 2
-
-        this.debug = true;
+        this.numberOfBeans = 5
     }
 
     init (data)
@@ -33,7 +31,7 @@ class Level extends Phaser.Scene
     create ()
     {
         const map = this.make.tilemap({ key: 'tilemap' })
-        const tileset = map.addTilesetImage('tt_match3', 'match3_tiles')
+        const tileset = map.addTilesetImage('match3', 'match3_tiles')
 
         const mapLayer = map.createLayer('map', tileset)
         const genLayer = map.createLayer('generator', tileset)
@@ -65,15 +63,6 @@ class Level extends Phaser.Scene
                 this.generators[[value.x * TILE_WIDTH, value.y * TILE_HEIGHT]] = 0;
             }
         }, this);
-
-        if (this.debug) {
-            let p = this.add.text(0, 0, '0/0').setColor("0xFFFFFF").setOrigin(0);
-
-            this.input.on('gameobjectmove', function (pointer, gameObject) {
-                p.text = gameObject.x + "/" + gameObject.y
-        
-            });
-        } 
 
         this.moveBeans()
     }
