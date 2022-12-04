@@ -10,7 +10,7 @@ class Level extends Phaser.Scene
 
         this.timer = null;
         this.updateTime = 120
-        this.animationTime = 120
+        this.animationTime = 500
         this.candrag = false;
         this.numberOfBeans = 5
 
@@ -27,13 +27,13 @@ class Level extends Phaser.Scene
         this.load.image('match3_tiles', 'assets/tiles/match3.png')
         this.load.spritesheet('match3Sprite', 'assets/tiles/match3.png', { frameWidth: TILE_WIDTH, frameHeight: TILE_HEIGHT });
 
-        this.load.tilemapTiledJSON('tilemap', 'assets/tiles/level1.json')
+        this.load.tilemapTiledJSON('tilemap', 'assets/tiles/level2.json')
     }
 
     create ()
     {
         const map = this.make.tilemap({ key: 'tilemap' })
-        const tileset = map.addTilesetImage('match3', 'match3_tiles')
+        const tileset = map.addTilesetImage('tt_match3', 'match3_tiles')
 
         const mapLayer = map.createLayer('map', tileset)
         const genLayer = map.createLayer('generator', tileset)
@@ -170,7 +170,204 @@ class Level extends Phaser.Scene
         }, this);
         
         tween.on('complete', function () { 
-            if (this.canMatch()) {
+            // both beans are super Poweups
+            if (bean1.spriteIndex == 9 && bean2.spriteIndex == 9){
+                let newPowerups = []
+                let newMatches = []
+
+                for (const key of Object.keys(this.beans)) {
+                    let pos = this.getPosFromKey(key)
+                    //  identify powerUp
+                    if (this.beans[pos].spriteIndex >= 9) {
+                        newPowerups.push(this.createTempBeanFromPos(pos))
+                    }
+                    
+                    this.beans[pos].destroy()
+                    delete this.beans[pos]
+                }
+
+                let spu1 = this.createBean(bean1.x, bean1.y, bean1.spriteIndex)
+                spu1.targetX = bean1.x
+                spu1.targetY = bean1.y
+                newMatches.push(spu1)
+                let spu2 = this.createBean(bean2.x, bean2.y, bean2.spriteIndex)
+                spu2.targetX = bean2.x
+                spu2.targetY = bean2.y
+                newMatches.push(spu2)
+                this.cameras.main.shake(500, 0.02);
+
+                this.animateMatchTween(newMatches, newPowerups)
+            }
+            // one of the two beans are a super PowerUp
+            else if (bean1.spriteIndex == 9 || bean2.spriteIndex == 9){
+                let newPowerups = []
+                let newMatches = []
+
+                let matchIndex = bean1.matchIndex
+                let spriteIndex = bean1.spriteIndex
+                let superBean = bean2
+                if (bean1.spriteIndex == 9) {
+                    matchIndex = bean2.matchIndex
+                    spriteIndex = bean2.spriteIndex
+                    superBean = bean1
+                }
+                
+                // get all beans that match this match index
+                for (const key of Object.keys(this.beans)) {
+                    let pos = this.getPosFromKey(key)
+                    if (this.beans[pos].matchIndex == matchIndex) {
+                        //  identify powerUp
+                        if (this.beans[pos].spriteIndex >= 9) {
+                            newPowerups.push(this.createTempBeanFromPos(pos))
+                        }
+                        // handle if the other bean is a bomb or a bug
+                        else if (spriteIndex >= 10) {
+                            let otherPowerUp = this.createBean(pos[0], pos[1], spriteIndex)
+                            otherPowerUp.targetX = superBean.x
+                            otherPowerUp.targetY = superBean.y
+                            // if its a bug rotate it randomly
+                            if (this.isBugSprite(spriteIndex)) {
+                                otherPowerUp.setRotation(Math.PI / 2 * this.getRandomInt(0, 1))
+                            }
+                            newPowerups.push(otherPowerUp)
+                        }
+                        
+                        this.beans[pos].destroy()
+                        delete this.beans[pos]
+
+                    }
+                }
+
+                // create super powerUp
+                let pos = [superBean.x, superBean.y]
+                let spu = this.createBean(superBean.x, superBean.y, superBean.spriteIndex)
+                spu.targetX = superBean.x
+                spu.targetY = superBean.y
+                newMatches.push(spu)
+
+                this.beans[pos].destroy()
+                delete this.beans[pos]
+
+                this.cameras.main.shake(500, 0.01);
+
+                this.animateMatchTween(newMatches, newPowerups)
+            }
+            // both are bombs
+            else if (bean1.spriteIndex >= 20 && bean2.spriteIndex >= 20) {
+                // bean 1 will always be dragged to bean 2 and swap places so bean 1 is the center of the explosion
+                let newPowerups = []
+                let newMatches = []
+                
+                let pos1 = [bean1.x, bean1.y]
+                let pos2 = [bean2.x, bean2.y]
+
+                // first destroy the other bomb
+                this.beans[pos2].destroy()
+                delete this.beans[pos2]
+
+                const directions = [-2, -1, 0, 1, 2]
+
+                directions.forEach(x => {
+                    directions.forEach(y => {
+                        if (x != 0 || y != 0) {
+                            let pos = [bean1.x + (x * TILE_WIDTH), bean1.y + (y * TILE_HEIGHT)]
+                            if (pos in this.beans) {
+                                //  identify powerUp
+                                if (this.beans[pos].spriteIndex >= 9) {
+                                    newPowerups.push(this.createTempBeanFromPos(pos))
+                                }
+                                
+                                this.beans[pos].destroy()
+                                delete this.beans[pos]
+                            }
+                        }
+                    })
+                })
+
+                // create temp bomb
+                let bomb = this.createBean(bean1.x, bean1.y, bean1.spriteIndex)
+                bomb.targetX = bean1.x
+                bomb.targetY = bean1.y
+                newMatches.push(bomb)
+
+                this.beans[pos1].destroy()
+                delete this.beans[pos1]
+
+                this.cameras.main.shake(500, 0.01);
+
+                this.animateMatchTween(newMatches, newPowerups)
+            }
+            // one is a bug and one is a bomb
+            else if ((this.isBugSprite(bean1.spriteIndex) && bean2.spriteIndex >= 20) || (this.isBugSprite(bean2.spriteIndex) && bean1.spriteIndex >= 20)) {
+                let newPowerups = []
+                let newMatches = []
+                
+                let pos1 = [bean1.x, bean1.y]
+                let pos2 = [bean2.x, bean2.y]
+
+                // first destroy the other bomb
+                this.beans[pos2].destroy()
+                delete this.beans[pos2]
+
+                for (const key of Object.keys(this.beans)) {
+                    let pos = this.getPosFromKey(key)
+                    
+                    if (pos[1] == bean1.y || pos[1] == bean1.y + TILE_HEIGHT || pos[1] == bean1.y - TILE_HEIGHT || pos[0] == bean1.x || pos[0] == bean1.x + TILE_WIDTH|| pos[0] == bean1.x - TILE_WIDTH) {
+                        //  identify powerUp but not the thing in the middle
+                        if (this.beans[pos].spriteIndex >= 9 && String(pos) != String(pos1)) {
+                            newPowerups.push(this.createTempBeanFromPos(pos))
+                        }
+                        this.beans[pos].destroy()
+                        delete this.beans[pos]
+                    }
+                }
+
+                newMatches = newMatches.concat(this.createTempBeatles(bean1.x, bean1.y, bean1.spriteIndex, 0, true))
+                newMatches = newMatches.concat(this.createTempBeatles(bean1.x + TILE_WIDTH, bean1.y, bean1.spriteIndex, 0, true))
+                newMatches = newMatches.concat(this.createTempBeatles(bean1.x - TILE_WIDTH, bean1.y, bean1.spriteIndex, 0, true))
+                newMatches = newMatches.concat(this.createTempBeatles(bean1.x, bean1.y, bean1.spriteIndex, Math.PI / 2, false))
+                newMatches = newMatches.concat(this.createTempBeatles(bean1.x, bean1.y + TILE_HEIGHT, bean1.spriteIndex, Math.PI / 2, false))
+                newMatches = newMatches.concat(this.createTempBeatles(bean1.x, bean1.y - TILE_HEIGHT, bean1.spriteIndex, Math.PI / 2, false))
+
+                this.cameras.main.shake(500, 0.01);
+
+                this.animateMatchTween(newMatches, newPowerups)
+
+            }
+            // both are bugs
+            else if ((this.isBugSprite(bean1.spriteIndex) && this.isBugSprite(bean2.spriteIndex)) || (this.isBugSprite(bean2.spriteIndex) && this.isBugSprite(bean1.spriteIndex))) {
+                let newPowerups = []
+                let newMatches = []
+                
+                let pos1 = [bean1.x, bean1.y]
+                let pos2 = [bean2.x, bean2.y]
+
+                // first destroy the other bomb
+                this.beans[pos2].destroy()
+                delete this.beans[pos2]
+
+                for (const key of Object.keys(this.beans)) {
+                    let pos = this.getPosFromKey(key)
+                    
+                    if (pos[1] == bean1.y || pos[0] == bean1.x) {
+                        //  identify powerUp but not the thing in the middle
+                        if (this.beans[pos].spriteIndex >= 9 && String(pos) != String(pos1)) {
+                            newPowerups.push(this.createTempBeanFromPos(pos))
+                        }
+                        this.beans[pos].destroy()
+                        delete this.beans[pos]
+                    }
+                }
+
+                newMatches = newMatches.concat(this.createTempBeatles(bean1.x, bean1.y, bean1.spriteIndex, 0, true))
+                newMatches = newMatches.concat(this.createTempBeatles(bean1.x, bean1.y, bean1.spriteIndex, Math.PI / 2, false))
+
+                this.cameras.main.shake(500, 0.01);
+
+                this.animateMatchTween(newMatches, newPowerups)
+
+            }
+            else if (this.canMatch()) {
                 this.moveBeans() 
             }
             else {
@@ -204,6 +401,11 @@ class Level extends Phaser.Scene
             }
             
         }, this);
+    }
+
+    isBugSprite(spriteIndex) {
+        if (spriteIndex >= 10 && spriteIndex < 20) {return true}
+        return false
     }
 
     // The maximum is inclusive and the minimum is inclusive
@@ -523,30 +725,30 @@ class Level extends Phaser.Scene
         return tempMatch3
     }
 
-    createTempBeatles(bean, isVertical=true) {
-        let beatle1 = this.createBean(bean.x, bean.y, bean.spriteIndex)
-        beatle1.setRotation(bean.rotation)
+    createTempBeatles(x, y, spriteIndex, rotation, isVertical=true) {
+        let beatle1 = this.createBean(x, y, spriteIndex)
+        beatle1.setRotation(rotation)
         
         if (isVertical) {
-            beatle1.targetX = bean.x
+            beatle1.targetX = x
             beatle1.targetY = 0
         }
         else {
             beatle1.targetX = CANVAS_WIDTH
-            beatle1.targetY = bean.y
+            beatle1.targetY = y
         }
 
-        let beatle2 = this.createBean(bean.x, bean.y, bean.spriteIndex)
-        beatle2.setRotation(bean.rotation)
+        let beatle2 = this.createBean(x, y, spriteIndex)
+        beatle2.setRotation(rotation)
         beatle2.rotation += Math.PI
         
         if (isVertical) {
-            beatle2.targetX = bean.x
+            beatle2.targetX = x
             beatle2.targetY = CANVAS_WIDTH
         }
         else {
             beatle2.targetX = 0
-            beatle2.targetY = bean.y
+            beatle2.targetY = y
         }
         
 
@@ -565,14 +767,11 @@ class Level extends Phaser.Scene
         // handle power ups
         let newPowerups = []
 
-        console.log("animate")
-
         let newMatches = []
         match.forEach(bean => {
             if (bean.spriteIndex == 9) {
                 // SuperPowerUp
                 let randomMatchIndex = this.getRandomInt(0, this.numberOfBeans - 1);
-                console.log(randomMatchIndex)
 
                 // get all beans that match this match index
                 for (const key of Object.keys(this.beans)) {
@@ -629,7 +828,7 @@ class Level extends Phaser.Scene
                 bean.destroy()
             }
             
-            else if (bean.spriteIndex >= 10 && bean.rotation == 0) {
+            else if (this.isBugSprite(bean.spriteIndex) && bean.rotation == 0) {
                 // BeatleVerticalPowerUp
                 // get all beans that are on this vertical line and destroy them
                 for (const key of Object.keys(this.beans)) {
@@ -647,14 +846,13 @@ class Level extends Phaser.Scene
                 }
 
                 // create two beatles
-                let beatles = this.createTempBeatles(bean, true)
+                let beatles = this.createTempBeatles(bean.x, bean.y, bean.spriteIndex, bean.rotation, true)
                 newMatches = newMatches.concat(beatles)
-
 
                 bean.destroy()
             }
 
-            else if (bean.spriteIndex >= 10) {
+            else if (this.isBugSprite(bean.spriteIndex)) {
                 // BeatleHorizontalPowerUp
                 // get all beans that are on this horizontal line and destroy them
                 for (const key of Object.keys(this.beans)) {
@@ -671,14 +869,17 @@ class Level extends Phaser.Scene
                 }
 
                 // create two beatles
-                let beatles = this.createTempBeatles(bean, false)
+                let beatles = this.createTempBeatles(bean.x, bean.y, bean.spriteIndex, bean.rotation, false)
                 newMatches = newMatches.concat(beatles)
 
                 bean.destroy()
             }
         });
         match = match.concat(newMatches)
+        this.animateMatchTween(match, newPowerups)
+    }
 
+    animateMatchTween(match, newPowerups){
         let tween = this.tweens.add({
             targets: match,
             ease: 'Power',
