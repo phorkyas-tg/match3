@@ -12,7 +12,7 @@ class Level extends Phaser.Scene
         this.updateTime = 120
         this.animationTime = 120
         this.candrag = false;
-        this.numberOfBeans = 3
+        this.numberOfBeans = 5
 
         this.debug = true;
     }
@@ -565,9 +565,39 @@ class Level extends Phaser.Scene
         // handle power ups
         let newPowerups = []
 
+        console.log("animate")
+
         let newMatches = []
         match.forEach(bean => {
-            if (bean.spriteIndex == 9) {console.log("SuperPowerUp")}
+            if (bean.spriteIndex == 9) {
+                // SuperPowerUp
+                let randomMatchIndex = this.getRandomInt(0, this.numberOfBeans - 1);
+                console.log(randomMatchIndex)
+
+                // get all beans that match this match index
+                for (const key of Object.keys(this.beans)) {
+                    let pos = this.getPosFromKey(key)
+                    if (this.beans[pos].matchIndex == randomMatchIndex) {
+                        //  identify powerUp
+                        if (this.beans[pos].spriteIndex >= 9) {
+                            newPowerups.push(this.createTempBeanFromPos(pos))
+                        }
+                        
+                        this.beans[pos].destroy()
+                        delete this.beans[pos]
+
+                    }
+                }
+
+                // create super powerUp
+                let spu = this.createBean(bean.x, bean.y, bean.spriteIndex)
+                spu.targetX = bean.x
+                spu.targetY = bean.y
+                newMatches.push(spu)
+
+                bean.destroy()
+
+            }
 
             else if (bean.spriteIndex >= 20) {
                 // BombPowerUp
