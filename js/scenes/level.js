@@ -10,7 +10,7 @@ class Level extends Phaser.Scene
 
         this.timer = null;
         this.updateTime = 120
-        this.animationTime = 300
+        this.animationTime = 120
         this.candrag = false;
         this.numberOfBeans = 3
 
@@ -523,6 +523,44 @@ class Level extends Phaser.Scene
         return tempMatch3
     }
 
+    createTempBeatles(bean, isVertical=true) {
+        let beatle1 = this.createBean(bean.x, bean.y, bean.spriteIndex)
+        beatle1.setRotation(bean.rotation)
+        
+        if (isVertical) {
+            beatle1.targetX = bean.x
+            beatle1.targetY = 0
+        }
+        else {
+            beatle1.targetX = CANVAS_WIDTH
+            beatle1.targetY = bean.y
+        }
+
+        let beatle2 = this.createBean(bean.x, bean.y, bean.spriteIndex)
+        beatle2.setRotation(bean.rotation)
+        beatle2.rotation += Math.PI
+        
+        if (isVertical) {
+            beatle2.targetX = bean.x
+            beatle2.targetY = CANVAS_WIDTH
+        }
+        else {
+            beatle2.targetX = 0
+            beatle2.targetY = bean.y
+        }
+        
+
+        return [beatle1, beatle2]
+    }
+
+    createTempBeanFromPos(pos) {
+        let powerUp = this.createBean(pos[0], pos[1], this.beans[pos].spriteIndex)
+        powerUp.setRotation(this.beans[pos].rotation)
+        powerUp.targetX = pos[0]
+        powerUp.targetY = pos[1]
+        return powerUp
+    }
+
     animateMatch(match) {
         // handle power ups
         let newPowerups = []
@@ -532,82 +570,79 @@ class Level extends Phaser.Scene
             if (bean.spriteIndex == 9) {console.log("SuperPowerUp")}
 
             else if (bean.spriteIndex >= 20) {
-                // console.log("BombPowerUp", bean.x, bean.y)
+                // BombPowerUp
+                const directions = [-1, 0, 1]
+
+                directions.forEach(x => {
+                    directions.forEach(y => {
+                        if (x != 0 || y != 0) {
+                            let pos = [bean.x + (x * TILE_WIDTH), bean.y + (y * TILE_HEIGHT)]
+                            if (pos in this.beans) {
+                                //  identify powerUp
+                                if (this.beans[pos].spriteIndex >= 9) {
+                                    newPowerups.push(this.createTempBeanFromPos(pos))
+                                }
+                                
+                                this.beans[pos].destroy()
+                                delete this.beans[pos]
+                            }
+                        }
+                    })
+                })
+
+                // create temp bomb
+                let bomb = this.createBean(bean.x, bean.y, bean.spriteIndex)
+                bomb.targetX = bean.x
+                bomb.targetY = bean.y
+                newMatches.push(bomb)
+
+                bean.destroy()
             }
             
             else if (bean.spriteIndex >= 10 && bean.rotation == 0) {
-                // console.log("BeatleVerticalPowerUp", bean.x, bean.y)
+                // BeatleVerticalPowerUp
                 // get all beans that are on this vertical line and destroy them
-                for (const [key, value] of Object.entries(this.beans)) {
+                for (const key of Object.keys(this.beans)) {
                     let pos = this.getPosFromKey(key)
                     if (pos[0] == bean.x) {
                         //  identify powerUp
                         if (this.beans[pos].spriteIndex >= 9) {
-                            let powerUp = this.createBean(pos[0], pos[1], this.beans[key].spriteIndex)
-                            powerUp.setRotation(this.beans[key].rotation)
-                            powerUp.targetX = pos[0]
-                            powerUp.targetY = pos[1]
-                            newPowerups.push(powerUp)
+                            newPowerups.push(this.createTempBeanFromPos(pos))
                         }
                         
-                        this.beans[key].destroy()
-                        delete this.beans[key]
+                        this.beans[pos].destroy()
+                        delete this.beans[pos]
 
                     }
                 }
 
-                // create two animated beatles
-                let beatle1 = this.createBean(bean.x, bean.y, bean.spriteIndex)
-                beatle1.setRotation(bean.rotation)
-                beatle1.targetX = bean.x
-                beatle1.targetY = 0
+                // create two beatles
+                let beatles = this.createTempBeatles(bean, true)
+                newMatches = newMatches.concat(beatles)
 
-                let beatle2 = this.createBean(bean.x, bean.y, bean.spriteIndex)
-                beatle2.setRotation(bean.rotation)
-                beatle2.rotation += Math.PI
-                beatle2.targetX = bean.x
-                beatle2.targetY = CANVAS_WIDTH
-
-                newMatches.push(beatle1)
-                newMatches.push(beatle2)
 
                 bean.destroy()
             }
 
             else if (bean.spriteIndex >= 10) {
-                // console.log("BeatleHorizontalPowerUp", bean.x, bean.y)
+                // BeatleHorizontalPowerUp
                 // get all beans that are on this horizontal line and destroy them
-                for (const [key, value] of Object.entries(this.beans)) {
+                for (const key of Object.keys(this.beans)) {
                     let pos = this.getPosFromKey(key)
                     
                     if (pos[1] == bean.y) {
                         //  identify powerUp
-                        if (this.beans[pos].spriteIndex > 9) {
-                            let powerUp = this.createBean(pos[0], pos[1], this.beans[key].spriteIndex)
-                            powerUp.setRotation(this.beans[key].rotation)
-                            powerUp.targetX = pos[0]
-                            powerUp.targetY = pos[1]
-                            newPowerups.push(powerUp)
+                        if (this.beans[pos].spriteIndex >= 9) {
+                            newPowerups.push(this.createTempBeanFromPos(pos))
                         }
-                        this.beans[key].destroy()
-                        delete this.beans[key]
+                        this.beans[pos].destroy()
+                        delete this.beans[pos]
                     }
                 }
 
-                // create two animated beatles
-                let beatle1 = this.createBean(bean.x, bean.y, bean.spriteIndex)
-                beatle1.setRotation(bean.rotation)
-                beatle1.targetX = CANVAS_WIDTH
-                beatle1.targetY = bean.y
-
-                let beatle2 = this.createBean(bean.x, bean.y, bean.spriteIndex)
-                beatle2.setRotation(bean.rotation)
-                beatle2.rotation += Math.PI
-                beatle2.targetX = 0
-                beatle2.targetY = bean.y
-
-                newMatches.push(beatle1)
-                newMatches.push(beatle2)
+                // create two beatles
+                let beatles = this.createTempBeatles(bean, false)
+                newMatches = newMatches.concat(beatles)
 
                 bean.destroy()
             }
@@ -623,6 +658,10 @@ class Level extends Phaser.Scene
             },
             y: function(target, targetKey, value, targetIndex, totalTargets, tween) {
                 return target.targetY;
+            },
+            scale: function(target, targetKey, value, targetIndex, totalTargets, tween) {
+                if (target.spriteIndex >= 20) {return 4}
+                return 1;
             },
             repeat: 0,
             yoyo: false
