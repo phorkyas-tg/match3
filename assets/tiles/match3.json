@@ -1,0 +1,26 @@
+{ "frames": {
+   "match3.aseprite": {
+    "frame": { "x": 0, "y": 0, "w": 640, "h": 640 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 640, "h": 640 },
+    "sourceSize": { "w": 640, "h": 640 },
+    "duration": 100
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.2.40-dev",
+  "image": "match3.png",
+  "format": "RGBA8888",
+  "size": { "w": 640, "h": 640 },
+  "scale": "1",
+  "frameTags": [
+  ],
+  "layers": [
+   { "name": "Layer 1", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

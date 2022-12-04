@@ -1,0 +1,88 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "",
+    "expandedProjectPaths": [
+    ],
+    "fileStates": {
+        "": {
+            "scaleInDock": 1
+        },
+        "level1.tmx": {
+            "scale": 0.8253125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 594.9261643316925,
+                "y": 529.4964028776978
+            }
+        },
+        "level1.tmx#match3": {
+            "scaleInDock": 1
+        },
+        "level2.tmx": {
+            "scale": 0.8253125,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 740.9314653540325,
+                "y": 531.9197273759941
+            }
+        },
+        "level2.tmx#tt_match3": {
+            "scaleInDock": 1
+        },
+        "match.tmx": {
+            "scale": 0.5053,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 472.9863447456956,
+                "y": 508.60874727884436
+            }
+        },
+        "match.tmx#match3": {
+            "scaleInDock": 1
+        },
+        "match3.tmx": {
+            "scale": 0.5419,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 490.8654733345635,
+                "y": 413.3603985975272
+            }
+        },
+        "match3.tmx#match3": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "tt_match3.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        }
+    },
+    "last.exportedFilePath": "/home/tomg/workspace/match3/assets/tiles",
+    "last.imagePath": "/home/tomg/workspace/match3/assets/tiles",
+    "map.height": 15,
+    "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 64,
+    "map.tileWidth": 64,
+    "map.width": 20,
+    "openFiles": [
+    ],
+    "project": "match3.tiled-project",
+    "property.type": "bool",
+    "recentFiles": [
+        "match3.tmx",
+        "match.tmx",
+        "level2.tmx",
+        "tt_match3.tsx",
+        "level1.tmx"
+    ],
+    "tileset.embedInMap": true,
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 64,
+        "width": 64
+    }
+}
