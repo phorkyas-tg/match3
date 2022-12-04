@@ -23,6 +23,7 @@ class Level extends Phaser.Scene
     preload ()
     {
         this.load.image('match3_tiles', 'assets/tiles/match3.png')
+        this.load.image('bg', 'assets/sprites/headquarter.png')
         this.load.spritesheet('match3Sprite', 'assets/tiles/match3.png', { frameWidth: TILE_WIDTH, frameHeight: TILE_HEIGHT });
 
         this.load.tilemapTiledJSON('tilemap', 'assets/tiles/level2.json')
@@ -30,6 +31,7 @@ class Level extends Phaser.Scene
 
     create ()
     {
+        const bg = this.add.image(CANVAS_WIDTH/2, CANVAS_HEIGHT/2, "bg").setScale(5).setAlpha(0.2)
         const map = this.make.tilemap({ key: 'tilemap' })
         const tileset = map.addTilesetImage('match3', 'match3_tiles')
 
