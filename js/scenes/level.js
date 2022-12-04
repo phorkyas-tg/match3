@@ -12,7 +12,7 @@ class Level extends Phaser.Scene
         this.updateTime = 120
         this.animationTime = 500
         this.candrag = false;
-        this.numberOfBeans = 5
+        this.numberOfBeans = 2
 
         this.debug = true;
     }
@@ -880,18 +880,32 @@ class Level extends Phaser.Scene
     }
 
     animateMatchTween(match, newPowerups){
+        // make all the powerups beat so you can see, that they are next
+        let powerUpTween = this.tweens.add({
+            targets: newPowerups,
+            ease: 'Power',
+            duration: this.animationTime / 3,
+            scale: 1.3,
+            repeat: -1,
+            yoyo: true
+        }, this);
+
+
         let tween = this.tweens.add({
             targets: match,
             ease: 'Power',
             duration: this.animationTime,
             x: function(target, targetKey, value, targetIndex, totalTargets, tween) {
-                return target.targetX;
+                if (target.spriteIndex >= 10 && target.spriteIndex < 20) {return target.targetX}
+                return target.x;
             },
             y: function(target, targetKey, value, targetIndex, totalTargets, tween) {
-                return target.targetY;
+                if (target.spriteIndex >= 10 && target.spriteIndex < 20) {return target.targetY}
+                return target.y;
             },
             scale: function(target, targetKey, value, targetIndex, totalTargets, tween) {
                 if (target.spriteIndex >= 20) {return 4}
+                else if (target.spriteIndex < 9) { return 0}
                 return 1;
             },
             repeat: 0,
@@ -899,6 +913,7 @@ class Level extends Phaser.Scene
         }, this);
 
         tween.on('complete', function (obj) { 
+            powerUpTween.remove()
             let somethingMatched = false;
             tween.targets.forEach(value => {
                 value.destroy()
