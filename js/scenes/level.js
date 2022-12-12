@@ -8,22 +8,30 @@ class Level extends Phaser.Scene
     {
         super({ "key": key });
 
-        this.timer = null;
-        this.updateTime = 120
-        this.animationTime = 500
-        this.candrag = false;
-        this.numberOfBeans = 5
+        
     }
 
     init (data)
     {
+        this.timer = null;
+        this.updateTime = 120
+        this.animationTime = 500
+        this.candrag = false;
+        this.numberOfBeans = 6
+        this.moves = 3
+        this.gameOver = false
 
+        this.collect = {"numberOfCollectibles": 3, 
+                        "0": {"spriteIndex": 0, "collected": 0, "collect": 100, "bean": null, "txt": null},
+                        "1": {"spriteIndex": 1, "collected": 0, "collect": 120, "bean": null, "txt": null},
+                        "2": {"spriteIndex": 2, "collected": 0, "collect": 150, "bean": null, "txt": null}}
     }
 
     preload ()
     {
         this.load.image('match3_tiles', 'assets/tiles/match3.png')
         this.load.image('bg', 'assets/sprites/headquarter.png')
+        this.load.image('hand', 'assets/sprites/hand_touch.png')
         this.load.spritesheet('match3Sprite', 'assets/tiles/match3.png', { frameWidth: TILE_WIDTH, frameHeight: TILE_HEIGHT });
 
         this.load.tilemapTiledJSON('tilemap', 'assets/tiles/level2.json')
@@ -66,7 +74,27 @@ class Level extends Phaser.Scene
             }
         }, this);
 
+        this.createScore()
+
         this.moveBeans()
+    }
+
+    createScore() {
+        let rec = this.add.rectangle(CANVAS_WIDTH/2, 150, CANVAS_WIDTH - 200, CANVAS_HEIGHT / 10, "0xffffff", 0.8)
+            .setOrigin(0.5)
+            .setStrokeStyle(5, "0x63666a", 0.5)
+
+        let style = { color: "#ffffff", fontSize: "40px", stroke: "#63666a", strokeThickness: 8}
+
+        let movesImg = this.add.image(160, 150, "hand").setOrigin(0.5)
+        this.movesText = this.add.text(movesImg.x + 80, movesImg.y, this.moves, style).setOrigin(0.5)
+
+        for (let i=0; i < this.collect.numberOfCollectibles; i++) {
+            let bean = this.physics.add.sprite(CANVAS_WIDTH - 270 - i * 180, 150, 'match3Sprite', this.collect[String(i)].spriteIndex).setOrigin(0.5)
+            let txt = this.add.text(bean.x + 80, bean.y, this.collect[String(i)].collected, style).setOrigin(0.5)
+            this.collect[String(i)].bean = bean
+            this.collect[String(i)].txt = txt
+        }
     }
 
     createRandomBean(x, y) {
@@ -161,6 +189,12 @@ class Level extends Phaser.Scene
         }, this);
         
         tween.on('complete', function () { 
+            let isMoved = true
+            let destroyedBeans = {}
+            for (let i=0; i < this.collect.numberOfCollectibles; i++) {
+                destroyedBeans[this.collect[String(i)].spriteIndex] = 0
+            }
+
             // both beans are super Poweups
             if (bean1.spriteIndex == 9 && bean2.spriteIndex == 9){
                 let newPowerups = []
@@ -171,6 +205,10 @@ class Level extends Phaser.Scene
                     //  identify powerUp
                     if (this.beans[pos].spriteIndex >= 9) {
                         newPowerups.push(this.createTempBeanFromPos(pos))
+                    }
+
+                    if (this.beans[pos].spriteIndex in destroyedBeans) {
+                        destroyedBeans[this.beans[pos].spriteIndex]++
                     }
                     
                     this.beans[pos].destroy()
@@ -222,6 +260,10 @@ class Level extends Phaser.Scene
                             }
                             newPowerups.push(otherPowerUp)
                         }
+
+                        if (this.beans[pos].spriteIndex in destroyedBeans) {
+                            destroyedBeans[this.beans[pos].spriteIndex]++
+                        }
                         
                         this.beans[pos].destroy()
                         delete this.beans[pos]
@@ -235,6 +277,10 @@ class Level extends Phaser.Scene
                 spu.targetX = superBean.x
                 spu.targetY = superBean.y
                 newMatches.push(spu)
+
+                if (this.beans[pos].spriteIndex in destroyedBeans) {
+                    destroyedBeans[this.beans[pos].spriteIndex]++
+                }
 
                 this.beans[pos].destroy()
                 delete this.beans[pos]
@@ -253,6 +299,9 @@ class Level extends Phaser.Scene
                 let pos2 = [bean2.x, bean2.y]
 
                 // first destroy the other bomb
+                if (this.beans[pos2].spriteIndex in destroyedBeans) {
+                    destroyedBeans[this.beans[pos2].spriteIndex]++
+                }
                 this.beans[pos2].destroy()
                 delete this.beans[pos2]
 
@@ -267,6 +316,9 @@ class Level extends Phaser.Scene
                                 if (this.beans[pos].spriteIndex >= 9) {
                                     newPowerups.push(this.createTempBeanFromPos(pos))
                                 }
+                                if (this.beans[pos].spriteIndex in destroyedBeans) {
+                                    destroyedBeans[this.beans[pos].spriteIndex]++
+                                }
                                 
                                 this.beans[pos].destroy()
                                 delete this.beans[pos]
@@ -280,6 +332,10 @@ class Level extends Phaser.Scene
                 bomb.targetX = bean1.x
                 bomb.targetY = bean1.y
                 newMatches.push(bomb)
+
+                if (this.beans[pos1].spriteIndex in destroyedBeans) {
+                    destroyedBeans[this.beans[pos1].spriteIndex]++
+                }
 
                 this.beans[pos1].destroy()
                 delete this.beans[pos1]
@@ -297,6 +353,9 @@ class Level extends Phaser.Scene
                 let pos2 = [bean2.x, bean2.y]
 
                 // first destroy the other bomb
+                if (this.beans[pos2].spriteIndex in destroyedBeans) {
+                    destroyedBeans[this.beans[pos2].spriteIndex]++
+                }
                 this.beans[pos2].destroy()
                 delete this.beans[pos2]
 
@@ -307,6 +366,9 @@ class Level extends Phaser.Scene
                         //  identify powerUp but not the thing in the middle
                         if (this.beans[pos].spriteIndex >= 9 && String(pos) != String(pos1)) {
                             newPowerups.push(this.createTempBeanFromPos(pos))
+                        }
+                        if (this.beans[pos].spriteIndex in destroyedBeans) {
+                            destroyedBeans[this.beans[pos].spriteIndex]++
                         }
                         this.beans[pos].destroy()
                         delete this.beans[pos]
@@ -334,6 +396,9 @@ class Level extends Phaser.Scene
                 let pos2 = [bean2.x, bean2.y]
 
                 // first destroy the other bomb
+                if (this.beans[pos2].spriteIndex in destroyedBeans) {
+                    destroyedBeans[this.beans[pos2].spriteIndex]++
+                }
                 this.beans[pos2].destroy()
                 delete this.beans[pos2]
 
@@ -344,6 +409,9 @@ class Level extends Phaser.Scene
                         //  identify powerUp but not the thing in the middle
                         if (this.beans[pos].spriteIndex >= 9 && String(pos) != String(pos1)) {
                             newPowerups.push(this.createTempBeanFromPos(pos))
+                        }
+                        if (this.beans[pos].spriteIndex in destroyedBeans) {
+                            destroyedBeans[this.beans[pos].spriteIndex]++
                         }
                         this.beans[pos].destroy()
                         delete this.beans[pos]
@@ -362,6 +430,7 @@ class Level extends Phaser.Scene
                 this.moveBeans() 
             }
             else {
+                isMoved = false
                 // there is nothing to match so reverse
                 let bean1 = this.beans[[x1, y1]];
                 let bean2 = this.beans[[x2, y2]];
@@ -390,6 +459,16 @@ class Level extends Phaser.Scene
                 
                 reverseTween.on('complete', function () { this.candrag = true }, this);
             }
+
+            if (isMoved) {
+                this.moves--
+                if (this.moves == 0){
+                    this.gameOver = true
+                }
+                this.movesText.text = this.moves
+            }
+
+            this.updateScore(destroyedBeans)
             
         }, this);
     }
@@ -513,7 +592,12 @@ class Level extends Phaser.Scene
         tween.on('complete', function () { 
             if (somethingMoved) {this.moveBeans()}
             else if (this.canMatch()) {this.matchBeans()}
-            else {this.candrag = true}
+            else {
+                if (this.gameOver) {
+                    console.log("game over")
+                }
+                else {this.candrag = true}
+            }
         }, this);
 
         return somethingMoved
@@ -587,14 +671,22 @@ class Level extends Phaser.Scene
         }
 
         // delete all the beans involved
+        let destroyedBeans = {}
+        for (let i=0; i < this.collect.numberOfCollectibles; i++) {
+            destroyedBeans[this.collect[String(i)].spriteIndex] = 0
+        }
         for (const [key, arr] of Object.entries(bombs)) {
             arr.forEach(value => {
                 if (value in this.beans){
+                    if (this.beans[value].spriteIndex in destroyedBeans) {
+                        destroyedBeans[this.beans[value].spriteIndex]++
+                    }
                     this.beans[value].destroy()
                     delete this.beans[value]
                 }
             })
         }
+        this.updateScore(destroyedBeans)
 
         // create the new bombs
         for (const key of Object.keys(bombs)) {
@@ -633,14 +725,56 @@ class Level extends Phaser.Scene
     }
 
     deleteAllBeans(match) {
+        let destroyedBeans = {}
+        for (let i=0; i < this.collect.numberOfCollectibles; i++) {
+            destroyedBeans[this.collect[String(i)].spriteIndex] = 0
+        }
+
         match.forEach(arr => {
             arr.forEach(value => {
                 if (value in this.beans){
+                    if (this.beans[value].spriteIndex in destroyedBeans) {
+                        destroyedBeans[this.beans[value].spriteIndex]++
+                    }
+
                     this.beans[value].destroy()
                     delete this.beans[value]
                 }
             })
         })
+        this.updateScore(destroyedBeans)
+    }
+
+    updateScore(destroyedBeans) {
+        for (const [key, value] of Object.entries(destroyedBeans)) {
+            for (let i=0; i < this.collect.numberOfCollectibles; i++) {
+                if (this.collect[String(i)].spriteIndex == key && value > 0) {
+                    this.collect[String(i)].collected += value
+                    this.collect[String(i)].txt.text = this.collect[String(i)].collected
+
+                    let collect = this.collect[String(i)]
+
+                    let bean = this.physics.add.sprite(collect.bean.x, collect.bean.y, 'match3Sprite', collect.spriteIndex).setOrigin(0.5)
+                    let txt = this.add.text(collect.bean.x + 80, collect.bean.y, "+" + value, { color: "#ffffff", fontSize: "40px", stroke: "#63666a", strokeThickness: 8}).setOrigin(0.5)
+                    let tween = this.tweens.add({
+                        targets: [bean, txt],
+                        ease: 'Power',
+                        duration: 300,
+                        alpha: 0.5,
+                        y: bean.y - 80,
+                        repeat: 0,
+                        yoyo: false
+                    }, this);
+
+                    tween.on('complete', function () { 
+                        bean.destroy()
+                        txt.destroy()
+                    })
+
+                    break
+                }
+            }
+        }
     }
 
     match5OrHigher(horizontals, verticals) {
@@ -759,6 +893,12 @@ class Level extends Phaser.Scene
         let newPowerups = []
 
         let newMatches = []
+
+        let destroyedBeans = {}
+        for (let i=0; i < this.collect.numberOfCollectibles; i++) {
+            destroyedBeans[this.collect[String(i)].spriteIndex] = 0
+        }
+
         match.forEach(bean => {
             if (bean.spriteIndex == 9) {
                 // SuperPowerUp
@@ -773,6 +913,9 @@ class Level extends Phaser.Scene
                             newPowerups.push(this.createTempBeanFromPos(pos))
                         }
                         
+                        if (this.beans[pos].spriteIndex in destroyedBeans) {
+                            destroyedBeans[this.beans[pos].spriteIndex]++
+                        }
                         this.beans[pos].destroy()
                         delete this.beans[pos]
 
@@ -803,6 +946,9 @@ class Level extends Phaser.Scene
                                     newPowerups.push(this.createTempBeanFromPos(pos))
                                 }
                                 
+                                if (this.beans[pos].spriteIndex in destroyedBeans) {
+                                    destroyedBeans[this.beans[pos].spriteIndex]++
+                                }
                                 this.beans[pos].destroy()
                                 delete this.beans[pos]
                             }
@@ -830,6 +976,9 @@ class Level extends Phaser.Scene
                             newPowerups.push(this.createTempBeanFromPos(pos))
                         }
                         
+                        if (this.beans[pos].spriteIndex in destroyedBeans) {
+                            destroyedBeans[this.beans[pos].spriteIndex]++
+                        }
                         this.beans[pos].destroy()
                         delete this.beans[pos]
 
@@ -854,6 +1003,10 @@ class Level extends Phaser.Scene
                         if (this.beans[pos].spriteIndex >= 9) {
                             newPowerups.push(this.createTempBeanFromPos(pos))
                         }
+
+                        if (this.beans[pos].spriteIndex in destroyedBeans) {
+                            destroyedBeans[this.beans[pos].spriteIndex]++
+                        }
                         this.beans[pos].destroy()
                         delete this.beans[pos]
                     }
@@ -866,6 +1019,8 @@ class Level extends Phaser.Scene
                 bean.destroy()
             }
         });
+
+        this.updateScore(destroyedBeans)
         match = match.concat(newMatches)
         this.animateMatchTween(match, newPowerups)
     }
@@ -913,7 +1068,12 @@ class Level extends Phaser.Scene
             if (newPowerups.length > 0) {
                 this.animateMatch(newPowerups)
             }
-            else if (!somethingMatched) {this.candrag = true}
+            else if (!somethingMatched) {
+                if (this.gameOver) {
+                    console.log("game over")
+                }
+                else {this.candrag = true}
+            }
             else {this.matchBeans()}
             
         }, this);
