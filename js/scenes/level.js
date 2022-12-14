@@ -18,19 +18,21 @@ class Level extends Phaser.Scene
         this.animationTime = 500
         this.candrag = false;
         this.numberOfBeans = 6
-        this.moves = 3
+        this.moves = 1
         this.gameOver = false
 
         this.collect = {"numberOfCollectibles": 3, 
-                        "0": {"spriteIndex": 0, "collected": 0, "collect": 100, "bean": null, "txt": null},
-                        "1": {"spriteIndex": 1, "collected": 0, "collect": 120, "bean": null, "txt": null},
-                        "2": {"spriteIndex": 2, "collected": 0, "collect": 150, "bean": null, "txt": null}}
+                        "0": {"spriteIndex": 0, "collected": 0, "collect": 200, "bean": null, "txt": null},
+                        "1": {"spriteIndex": 1, "collected": 0, "collect": 200, "bean": null, "txt": null},
+                        "2": {"spriteIndex": 2, "collected": 0, "collect": 200, "bean": null, "txt": null}}
     }
 
     preload ()
     {
         this.load.image('match3_tiles', 'assets/tiles/match3.png')
         this.load.image('bg', 'assets/sprites/headquarter.png')
+        this.load.image('beanContour', 'assets/sprites/coffee_bean_contour.png')
+        this.load.image('beanOrange', 'assets/sprites/coffee_bean_orange.png')
         this.load.image('hand', 'assets/sprites/hand_touch.png')
         this.load.spritesheet('match3Sprite', 'assets/tiles/match3.png', { frameWidth: TILE_WIDTH, frameHeight: TILE_HEIGHT });
 
@@ -594,7 +596,7 @@ class Level extends Phaser.Scene
             else if (this.canMatch()) {this.matchBeans()}
             else {
                 if (this.gameOver) {
-                    console.log("game over")
+                    this.finishGame()
                 }
                 else {this.candrag = true}
             }
@@ -1070,13 +1072,51 @@ class Level extends Phaser.Scene
             }
             else if (!somethingMatched) {
                 if (this.gameOver) {
-                    console.log("game over")
+                    this.finishGame()
                 }
                 else {this.candrag = true}
             }
             else {this.matchBeans()}
             
         }, this);
+    }
+
+    finishGame() {
+        let rec = this.add.rectangle(CANVAS_WIDTH/2, CANVAS_HEIGHT/2, CANVAS_WIDTH/4, CANVAS_HEIGHT/4, "0xffffff", 0.95)
+            .setStrokeStyle(5, "0x63666a", 0.5)
+            .setOrigin(0.5)
+
+        const style = { color: "#ffffff", fontSize: "40px", stroke: "#63666a", strokeThickness: 8}
+        let txt = this.add.text(CANVAS_WIDTH/2, CANVAS_HEIGHT/2 - 80, "Game Over", style).setOrigin(0.5)
+
+        let score = 0
+        for (let i=0; i < this.collect.numberOfCollectibles; i++) {
+            score += Math.min(this.collect[String(i)].collected, this.collect[String(i)].collect)
+            console.log(score)
+        }
+        score = Math.floor(score / this.collect.numberOfCollectibles)
+        const scoreStyle = { color: "#ed8b00", fontSize: "40px"}
+        let scoreTxt = this.add.text(CANVAS_WIDTH/2, CANVAS_HEIGHT/2, "Score: " + score, scoreStyle).setOrigin(0.5)
+
+        let b1 = this.add.image(CANVAS_WIDTH/2 - 80, CANVAS_HEIGHT/2 + 60, "beanOrange").setOrigin(0.5).setAlpha(0).setScale(5)
+        let b2 = this.add.image(CANVAS_WIDTH/2, CANVAS_HEIGHT/2 + 60, "beanOrange").setOrigin(0.5).setAlpha(0).setScale(5)
+        let b3 = this.add.image(CANVAS_WIDTH/2 + 80, CANVAS_HEIGHT/2 + 60, "beanOrange").setOrigin(0.5).setAlpha(0).setScale(5)
+
+        let targets = []
+        if (score > 1) {targets.push(b1)}
+        if (score > 100) {targets.push(b2)}
+        if (score >= 200) {targets.push(b3)}
+        
+        let tween1 = this.tweens.add({
+            targets: targets,
+            ease: 'Power',
+            duration: 1000,
+            alpha: 1,
+            scale: 1,
+            repeat: 0,
+            yoyo: false
+        }, this);
+
     }
 
     canMatch() {
