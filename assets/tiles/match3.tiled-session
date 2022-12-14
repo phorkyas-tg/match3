@@ -10,6 +10,17 @@
         "": {
             "scaleInDock": 1
         },
+        "level1.json": {
+            "scale": 0.708046875,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 641.2004854904557,
+                "y": 480.1941961822796
+            }
+        },
+        "level1.json#match3": {
+            "scaleInDock": 1
+        },
         "level1.tmx": {
             "scale": 0.8253125,
             "selectedLayer": 0,
@@ -19,6 +30,17 @@
             }
         },
         "level1.tmx#match3": {
+            "scaleInDock": 1
+        },
+        "level2.json": {
+            "scale": 0.708046875,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 641.2004854904557,
+                "y": 480.1941961822796
+            }
+        },
+        "level2.json#match3": {
             "scaleInDock": 1
         },
         "level2.tmx": {
@@ -73,6 +95,7 @@
     "project": "match3.tiled-project",
     "property.type": "bool",
     "recentFiles": [
+        "level2.json",
         "match3.tmx",
         "match.tmx",
         "level2.tmx",

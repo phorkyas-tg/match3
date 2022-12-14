@@ -34,7 +34,7 @@ class Level extends Phaser.Scene
         this.load.image('hand', 'assets/sprites/hand_touch.png')
         this.load.spritesheet('match3Sprite', 'assets/tiles/match3.png', { frameWidth: TILE_WIDTH, frameHeight: TILE_HEIGHT });
 
-        this.load.tilemapTiledJSON('tilemap', 'assets/tiles/level2.json')
+        this.load.tilemapTiledJSON('tilemap', 'assets/tiles/level5.json')
     }
 
     create ()
